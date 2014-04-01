@@ -2093,7 +2093,7 @@ class CTask extends w2p_Core_BaseObject
         $q = $this->_getQuery();
         $q->addTable('tasks');
         $q->addQuery('task_id, task_name, task_description, task_end_date, task_start_date');
-        $q->addQuery('task_milestone, task_parent, task_dynamic, task_percent_complete');
+        $q->addQuery('task_milestone, task_parent, task_dynamic, task_percent_complete, task_path_enumeration');
         $q->addWhere('task_project = ' . (int) $project_id);
         
         if ($task_id) {
@@ -2102,7 +2102,7 @@ class CTask extends w2p_Core_BaseObject
         } else {
             $q->addWhere('(task_id = task_parent OR task_parent = 0)');
         }
-        $q->addOrder('task_start_date, task_end_date');
+        $q->addOrder('task_start_date, task_end_date, task_name');
 
         $tasks = $q->loadHashList('task_id');
         foreach ($tasks as $task) {
