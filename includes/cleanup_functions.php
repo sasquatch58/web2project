@@ -452,7 +452,7 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
 
     // Assignment checkbox
     if ('projectdesigner' == $m) {
-        $s .= ('<td class="data">' . '<input type="checkbox" name="selected_task[' . $arr['task_id'] . ']" value="' . $arr['task_id'] . '"/></td>');
+        $s .= ('<td class="data">' . '<input type="checkbox" name="selected_task[]" value="' . $arr['task_id'] . '"/></td>');
     }
     $s .= '</tr>'."\n";
 
@@ -489,7 +489,7 @@ function __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, 
     }
 
     $open_link = '<a href="javascript: void(0);"><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_collapse" src="' . w2PfindImage('icons/collapse.gif') . '" border="0" align="center" ' . (!$expanded ? 'style="display:none"' : '') . ' alt="" /><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_expand" src="' . w2PfindImage('icons/expand.gif') . '" border="0" align="center" ' . ($expanded ? 'style="display:none"' : '') . ' alt="" /></a>';
-    if (isset($arr['task_nr_of_children']) && $arr['task_nr_of_children']) {
+    if (isset($arr['children']) && $arr['children']) {
         $is_parent = true;
     } else {
         $is_parent = false;
@@ -2308,6 +2308,7 @@ function projects_list_data($user_id = false)
         $q->addQuery($field);
     }
     $q->addQuery('ct.contact_display_name AS owner_name');
+    $q->addJoin('companies', 'c', 'c.company_id = pr.project_company');
     $q->addJoin('users', 'u', 'pr.project_owner = u.user_id');
     $q->addJoin('contacts', 'ct', 'ct.contact_id = u.user_contact');
     $q->addJoin('tasks_problems', 'tp', 'pr.project_id = tp.task_project');

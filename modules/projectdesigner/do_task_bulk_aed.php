@@ -9,7 +9,7 @@ global $AppUI;
 $project_id                          = w2PgetParam($_POST, 'project_id', 0);
 $selected                            = w2PgetParam($_POST, 'selected_task', array());
 $bulk_task_project                   = w2PgetParam($_POST, 'bulk_task_project', '');
-$bulk_task_parent                    = w2PgetParam($_POST, 'bulk_task_parent', '');
+$bulk_task_parent                    = (int) w2PgetParam($_POST, 'bulk_task_parent', '');
 $bulk_task_dependency                = w2PgetParam($_POST, 'bulk_task_dependency', '');
 $bulk_task_priority                  = w2PgetParam($_POST, 'bulk_task_priority', '');
 $bulk_task_access                    = w2PgetParam($_POST, 'bulk_task_access', '');
@@ -26,7 +26,7 @@ $bulk_task_start_date                = w2PgetParam($_POST, 'add_task_bulk_start_
 $bulk_task_end_date                  = w2PgetParam($_POST, 'add_task_bulk_end_date', '');
 $bulk_task_allow_other_user_tasklogs = w2PgetParam($_POST, 'bulk_task_allow_other_user_tasklogs', '');
 $add_task_bulk_time_keep             = w2PgetParam($_POST, 'add_task_bulk_time_keep', '0');
-$bulk_move_date                      = ($bulk_task_start_date || $bulk_task_end_date);
+$bulk_move_date                      = w2PgetParam($_POST, 'bulk_move_date', '0');
 $bulk_task_percent_complete = w2PgetParam($_POST, 'bulk_task_percent_complete', '');
 
 $userTZ = $AppUI->getPref('TIMEZONE');
@@ -55,10 +55,8 @@ $updateFields = array('bulk_task_percent_complete' => $bulk_task_percent_complet
 
 if (is_array($selected) && count($selected)) {
     $upd_task = new CTask();
-    foreach ($selected as $key => $val) {
-        if ($key) {
-            $upd_task->load($key);
-        }
+    foreach ($selected as $val) {
+        $upd_task->load($val);
 
         foreach ($updateFields as $name => $value) {
             if ($value != '' && ((int) $_POST[$name] == (int) $value)) {
@@ -66,15 +64,28 @@ if (is_array($selected) && count($selected)) {
                     $upd_task->{str_replace('bulk_', '', $name)} = $value;
                     $result = $upd_task->store();
                     if (!$result) {
-                        echo __LINE__; print_r($upd_task->getError()); die();
                         break;
                     }
                 }
             }
         }
 
-        //Action: Move Task Date
+        //Action: Bulk Move Tasks
         if ($bulk_move_date) {
+            $start_date = new w2p_Utilities_Date($upd_task->task_start_date);
+            $end_date   = new w2p_Utilities_Date($upd_task->task_end_date);
+
+            $start_date->addDuration($bulk_move_date, 24);
+            $upd_task->task_start_date = $start_date->format(FMT_DATETIME_MYSQL);
+
+            $end_date->addDuration($bulk_move_date, 24);
+            $upd_task->task_end_date = $end_date->format(FMT_DATETIME_MYSQL);
+
+            $result = $upd_task->store();
+        }
+
+        //Action: Move Task Date
+        if ($bulk_task_start_date || $bulk_task_end_date) {
             $start_date_old = new w2p_Utilities_Date($upd_task->task_start_date);
             $end_date_old = new w2p_Utilities_Date($upd_task->task_end_date);
 
@@ -123,24 +134,9 @@ if (is_array($selected) && count($selected)) {
         }
 
         //Action: Change parent
-        if (isset($_POST['bulk_task_parent']) && $bulk_task_parent != '') {
-            if ($upd_task->task_id) {
-                //If parent is self task
-                if ($bulk_task_parent == '0') {
-                    $upd_task->task_parent = $key;
-                    $result = $upd_task->store();
-                    if (!$result) {
-                        break;
-                    }
-                    //if not, then the task will be child to the selected parent
-                } else {
-                    $upd_task->task_parent = $bulk_task_parent;
-                    $result = $upd_task->store();
-                    if (!$result) {
-                        break;
-                    }
-                }
-            }
+        if ($bulk_task_parent) {
+            $upd_task->task_parent = $bulk_task_parent;
+            $result = $upd_task->store();
         }
 
         //Action: Change dependency
