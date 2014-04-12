@@ -384,9 +384,10 @@ function cal_work_day_conv($val)
 
 function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
 {
-    global $AppUI, $m;
+    global $AppUI, $m, $a;
 
     $listTable = (is_null($listTable)) ? new w2p_Output_HTML_TaskTable($AppUI) : $listTable;
+    $listTable->stageRowData($arr);
 
     $tmpTask = new CTask();
     $tmpTask->load($arr['task_id']);
@@ -408,7 +409,7 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
 
     // pinned
     $pin_prefix = $arr['task_pinned'] ? '' : 'un';
-    $s .= ('<td class="data _pin"><a href="?m=tasks&amp;pin=' . ($arr['task_pinned'] ? 0 : 1) . '&amp;task_id=' . $arr['task_id'] . '">' . '<img src="' . w2PfindImage('icons/' . $pin_prefix . 'pin.gif') . '" border="0" alt="" />' . '</a></td>');
+    $s .= ('<td class="data _pin"><a href="?m=tasks&amp;pin=' . ($arr['task_pinned'] ? 0 : 1) . '&amp;task_id=' . $arr['task_id'] . '">' . '<img src="' . w2PfindImage('icons/' . $pin_prefix . 'pin.gif') . '" />' . '</a></td>');
 
     // New Log
     $s .= '<td class="data">';
@@ -427,7 +428,7 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
     // dots
     $s = __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, $expanded);
 
-    if ($today_view) { // Show the project name
+    if ($a == 'todo') { // Show the project name
         $s .= ('<td class="_name" width="50%"><a href="./index.php?m=projects&amp;a=view&amp;project_id=' . $arr['task_project'] . '">' . '<div style="display:inline-block;padding: 2px 3px;background-color:#' . $arr['project_color_identifier'] . ';color:' . bestColor($arr['project_color_identifier']) . '">' . $arr['project_name'] . '</div>' . '</a></td>');
     } else {
         $s .= $listTable->createCell('task_owner', $arr['task_owner']);
@@ -440,14 +441,14 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
             $a_u_tmp_array[] = ('<a href="?m=users&amp;a=view&amp;user_id=' . $val['user_id'] . '"' . 'title="' . (w2PgetConfig('check_overallocation') ? $AppUI->_('Extent of Assignment') . ':' . $userAlloc[$val['user_id']]['charge'] . '%; ' . $AppUI->_('Free Capacity') . ':' . $userAlloc[$val['user_id']]['freeCapacity'] . '%' : '') . '">' . $val['assignee'] . ' (' . $val['perc_assignment'] . '%)</a>');
         }
         $s .= join(', <br />', $a_u_tmp_array) . '</td>';
-    } elseif (!$today_view) {
+    } elseif ($a != 'todo') {
         // No users assigned to task
         $s .= $listTable->createCell('other', '-');
     }
 
     // duration or milestone
     $s .= $listTable->createCell('task_start_datetime', $arr['task_start_date']);
-    $s .= $listTable->createCell('task_duration', $arr['task_duration'] . ' ' . mb_substr($AppUI->_($durnTypes[$arr['task_duration_type']]), 0, 1));
+    $s .= $listTable->createCell('task_duration', $arr['task_duration']);
     $s .= $listTable->createCell('task_end_datetime', $arr['task_end_date']);
 
     // Assignment checkbox
@@ -482,20 +483,20 @@ function __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, 
         } else {
             $image = w2PfindImage('shim.gif', $m);
         }
-        $s .= '<img src="' . $image . '" width="16" height="12"  border="0" alt="" />';
+        $s .= '<img src="' . $image . '" />';
     }
     if ($arr['task_description']) {
         $s .= w2PtoolTip('Task Description', substr($arr['task_description'], 0, 1000), true);
     }
 
-    $open_link = '<a href="javascript: void(0);"><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_collapse" src="' . w2PfindImage('icons/collapse.gif') . '" border="0" align="center" ' . (!$expanded ? 'style="display:none"' : '') . ' alt="" /><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_expand" src="' . w2PfindImage('icons/expand.gif') . '" border="0" align="center" ' . ($expanded ? 'style="display:none"' : '') . ' alt="" /></a>';
+    $open_link = '<a href="javascript: void(0);"><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_collapse" src="' . w2PfindImage('icons/collapse.gif') . '" class="center" ' . (!$expanded ? 'style="display:none"' : '') . ' /><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_expand" src="' . w2PfindImage('icons/expand.gif') . '" class="center" ' . ($expanded ? 'style="display:none"' : '') . ' /></a>';
     if (isset($arr['children']) && $arr['children']) {
         $is_parent = true;
     } else {
         $is_parent = false;
     }
     if ($arr['task_milestone'] > 0) {
-        $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" ><b>' . $arr['task_name'] . '</b></a> <img src="' . w2PfindImage('icons/milestone.gif') . '" border="0" alt="" /></td>';
+        $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" ><b>' . $arr['task_name'] . '</b></a> <img src="' . w2PfindImage('icons/milestone.gif') . '" /></td>';
     } elseif ($arr['task_dynamic'] == '1' || $is_parent) {
         if (!$today_view) {
             $s .= $open_link;
@@ -684,7 +685,7 @@ function sort_by_item_title($title, $item_name, $item_type, $a = '')
     }
     $s .= '" class="hdr">' . $AppUI->_($title);
     if ($show_icon) {
-        $s .= '&nbsp;<img src="' . w2PfindImage('arrow-' . (($item_order == SORT_ASC) ? 'up' : 'down') . '.gif') . '" border="0" alt="" />';
+        $s .= '&nbsp;<img src="' . w2PfindImage('arrow-' . (($item_order == SORT_ASC) ? 'up' : 'down') . '.gif') . '" />';
     }
 
     return $s.'</a>';
@@ -1242,11 +1243,11 @@ function showcodes(&$a)
 <tr>
     <td width=40>
         <a href="?m=system&amp;a=billingcode&amp;company_id=' . $company_id . '&amp;billingcode_id=' . $a['billingcode_id'] . '" title="' . $AppUI->_('edit') . '">
-            <img src="' . w2PfindImage('icons/stock_edit-16.png') . '" border="0" alt="Edit" /></a>';
+            <img src="' . w2PfindImage('icons/stock_edit-16.png') . '" alt="Edit" /></a>';
 
     if ($a['billingcode_status'] == 0)
         $s .= '<a href="javascript:delIt2(' . $a['billingcode_id'] . ');" title="' . $AppUI->_('delete') . '">
-            <img src="' . w2PfindImage('icons/stock_delete-16.png') . '" border="0" alt="Delete" /></a>';
+            <img src="' . w2PfindImage('icons/stock_delete-16.png') . '" alt="Delete" /></a>';
 
     $s .= '
     </td>
@@ -1675,12 +1676,17 @@ function clash_cancel(w2p_Core_CAppUI $AppUI)
 function getFolderSelectList()
 {
     global $AppUI;
-    $folders = array(0 => '');
+
     $q = new w2p_Database_Query();
     $q->addTable('file_folders');
     $q->addQuery('file_folder_id, file_folder_name, file_folder_parent');
     $q->addOrder('file_folder_name');
-    $folders = arrayMerge(array('0' => array(0, $AppUI->_('Root'), -1)), $q->loadHashList('file_folder_id'));
+    $folderList = $q->loadHashList('file_folder_id');
+
+    $folders = array(0 => 'Root');
+    foreach($folderList as $folder => $data) {
+        $folders[$folder] = $data['file_folder_name'];
+    }
 
     return $folders;
 }
@@ -2678,14 +2684,14 @@ function showRow_keys($id = 0, $name = '', $label = '')
         $s .= '<tr>';
         $s .= '<td width="12">';
         if ($canEdit) {
-            $s .= '<a href="?m=system&u=syskeys&a=keys&syskey_id=' . $id . '"><img src="' . w2PfindImage('icons/pencil.gif') . '" alt="edit" border="0"></a>';
+            $s .= '<a href="?m=system&u=syskeys&a=keys&syskey_id=' . $id . '"><img src="' . w2PfindImage('icons/pencil.gif') . '" alt="edit" /></a>';
             $s .= '</td>' . $CR;
         }
         $s .= '<td>' . $name . '</td>' . $CR;
         $s .= '<td colspan="2">' . $label . '</td>' . $CR;
         $s .= '<td width="16">';
         if ($canEdit) {
-            $s .= '<a href="javascript:delIt(' . $id . ')"><img align="absmiddle" src="' . w2PfindImage('icons/trash.gif') . '" width="16" height="16" alt="' . $AppUI->_('delete') . '" border="0"></a>';
+            $s .= '<a href="javascript:delIt(' . $id . ')"><img align="absmiddle" src="' . w2PfindImage('icons/trash.gif') . '" alt="' . $AppUI->_('delete') . '" /></a>';
         }
         $s .= '</td>' . $CR;
     }
@@ -3030,14 +3036,7 @@ function w2PshowImage($src, $wid = '', $hgt = '', $alt = '', $title = '', $modul
     } elseif (!$alt && $title) {
         $result = w2PtoolTip($m, $title);
     }
-    $result .= '<img src="' . $src . '" alt="' . $alt . '" ';
-    if ($wid) {
-        $result .= ' width="' . $wid . '"';
-    }
-    if ($hgt) {
-        $result .= ' height="' . $hgt . '"';
-    }
-    $result .= ' border="0" />';
+    $result .= '<img src="' . $src . '" alt="' . $alt . '" />';
     if (!$alt && !$title) {
         //do nothing
     } elseif ($alt && $title) {
@@ -3084,8 +3083,8 @@ function buildPaginationNav($AppUI, $m, $tab, $xpg_totalrecs, $xpg_pagesize, $pa
     $xpg_next_page = $page + 1;
     // left buttoms
     if ($xpg_prev_page > 0) {
-      $s .= '<td align="left" width="15%"><a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=1"><img src="' . w2PfindImage('navfirst.gif') . '" border="0" Alt="First Page"></a>&nbsp;&nbsp;';
-      $s .= '<a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_prev_page . '"><img src="' . w2PfindImage('navleft.gif') . '" border="0" Alt="Previous page (' . $xpg_prev_page . ')"></a></td>';
+      $s .= '<td align="left" width="15%"><a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=1"><img src="' . w2PfindImage('navfirst.gif') . '" alt="First Page"></a>&nbsp;&nbsp;';
+      $s .= '<a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_prev_page . '"><img src="' . w2PfindImage('navleft.gif') . '" alt="Previous page (' . $xpg_prev_page . ')"></a></td>';
     } else {
       $s .= '<td width="15%">&nbsp;</td>';
     }
@@ -3122,8 +3121,8 @@ function buildPaginationNav($AppUI, $m, $tab, $xpg_totalrecs, $xpg_pagesize, $pa
     $s .= '</td>';
     // right buttoms
     if ($xpg_next_page <= $xpg_total_pages) {
-      $s .= '<td align="right" width="15%"><a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_next_page . '"><img src="' . w2PfindImage('navright.gif') . '" border="0" Alt="Next Page (' . $xpg_next_page . ')"></a>&nbsp;&nbsp;';
-      $s .= '<a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_total_pages . '"><img src="' . w2PfindImage('navlast.gif') . '" border="0" Alt="Last Page"></a></td>';
+      $s .= '<td align="right" width="15%"><a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_next_page . '"><img src="' . w2PfindImage('navright.gif') . '" alt="Next Page (' . $xpg_next_page . ')"></a>&nbsp;&nbsp;';
+      $s .= '<a href="./index.php?m=' . $m . '&amp;tab=' . $tab . '&amp;page=' . $xpg_total_pages . '"><img src="' . w2PfindImage('navlast.gif') . '" alt="Last Page"></a></td>';
     } else {
       $s .= '<td width="15%">&nbsp;</td></tr>';
     }
