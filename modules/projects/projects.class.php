@@ -51,6 +51,8 @@ class CProject extends w2p_Core_BaseObject
     public $project_parent = null;
     public $project_location = null;
     public $project_original_parent = null;
+    public $project_created = null;
+    public $project_updated = null;
 
     protected $st_projects_arr = array();
     /*
@@ -82,22 +84,9 @@ class CProject extends w2p_Core_BaseObject
         if (0 == (int) $this->project_company) {
             $this->_error['project_company'] = $baseErrorMsg . 'project company is not set';
         }
-        if (0 == (int) $this->project_creator) {
-            $this->_error['project_creator'] = $baseErrorMsg . 'project creator is not set';
-        }
-        if (!is_int($this->project_priority) && '' == $this->project_priority) {
-            $this->_error['project_priority'] = $baseErrorMsg . 'project priority is not set';
-        }
         if ('' == $this->project_color_identifier) {
             $this->_error['project_color_identifier'] = $baseErrorMsg . 'project color identifier is not set';
         }
-        if (!is_int($this->project_type) && '' == $this->project_type) {
-            $this->_error['project_type'] = $baseErrorMsg . 'project type is not set';
-        }
-        if (!is_int($this->project_status) && '' == $this->project_status) {
-            $this->_error['project_status'] = $baseErrorMsg . 'project status is not set';
-        }
-
         return (count($this->_error)) ? false : true;
     }
 
@@ -212,7 +201,7 @@ class CProject extends w2p_Core_BaseObject
      * *	@author	handco <handco@sourceforge.net>
      * *	@see	w2PObject::getAllowedRecords
      * */
-    public function getAllowedRecords($uid, $fields = '*', $orderby = '', $index = null, $extra = null, $table_alias = '')
+    public function getAllowedRecords($uid, $fields = '*', $orderby = '', $index = null, $extra = array(), $table_alias = '')
     {
         $oCpy = new CCompany();
         $oCpy->overrideDatabase($this->_query);
@@ -246,11 +235,7 @@ class CProject extends w2p_Core_BaseObject
             }
         } else {
             // There are no allowed companies, so don't allow projects.
-            if ($extra['where'] != '') {
-                $extra['where'] = $extra['where'] . ' AND 1 = 0 ';
-            } else {
-                $extra['where'] = '1 = 0';
-            }
+            $extra['where'] = '1 = 0';
         }
         return parent::getAllowedRecords($uid, $fields, $orderby, $index, $extra, $table_alias);
     }
@@ -431,6 +416,11 @@ class CProject extends w2p_Core_BaseObject
         $this->project_url = str_replace(array('"', '"', '<', '>'), '', $this->project_url);
         $this->project_demo_url = str_replace(array('"', '"', '<', '>'), '', $this->project_demo_url);
         $this->project_owner = (int) $this->project_owner ? $this->project_owner : $this->_AppUI->user_id;
+        $this->project_creator = (int) $this->project_creator ? $this->project_creator : $this->_AppUI->user_id;
+
+        $this->project_priority = (int) $this->project_priority;
+        $this->project_type = (int) $this->project_type;
+        $this->project_status = (int) $this->project_status;
 
         // Make sure project_short_name is the right size (issue for languages with encoded characters)
         if ('' == $this->project_short_name) {
@@ -447,15 +437,9 @@ class CProject extends w2p_Core_BaseObject
             $date = new w2p_Utilities_Date($this->project_start_date);
             $this->project_start_date = $date->format(FMT_DATETIME_MYSQL);
         }
-        if ($this->project_end_date) {
-            $date = new w2p_Utilities_Date($this->project_end_date);
-            $date->setTime(23, 59, 59);
-            $this->project_end_date = $date->format(FMT_DATETIME_MYSQL);
-        }
-        if ($this->project_actual_end_date) {
-            $date = new w2p_Utilities_Date($this->project_actual_end_date);
-            $this->project_actual_end_date = $date->format(FMT_DATETIME_MYSQL);
-        }
+
+        $date = new w2p_Utilities_Date($this->project_end_date);
+        $this->project_end_date = $date->format(FMT_DATETIME_MYSQL);
 
         // check project parents and reset them to self if they do not exist
         if (!$this->project_parent) {
@@ -540,23 +524,19 @@ class CProject extends w2p_Core_BaseObject
     }
     public function notifyOwner($isNotNew)
     {
-        $mail = new w2p_Utilities_Mail;
-
-        $subject = (intval($isNotNew)) ? $this->_AppUI->_('Project updated') . ': ' . $this->project_name : $this->_AppUI->_('Project submitted') . ': ' . $this->project_name;
-
         $user = new CUser();
         $user->overrideDatabase($this->_query);
         $user->loadFull($this->project_owner);
 
-        if ($user && $mail->ValidEmail($user->user_email)) {
-            $emailManager = new w2p_Output_EmailManager($this->_AppUI);
-            $body = $emailManager->getProjectNotifyOwner($this, $isNotNew);
+        $subject = (intval($isNotNew)) ? $this->_AppUI->_('Project updated') . ': ' . $this->project_name : $this->_AppUI->_('Project submitted') . ': ' . $this->project_name;
+        $emailManager = new w2p_Output_EmailManager($this->_AppUI);
+        $body = $emailManager->getProjectNotifyOwner($this, $isNotNew);
 
-            $mail->Subject($subject, $this->_locale_char_set);
-            $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
-            $mail->To($user->user_email, true);
-            $mail->Send();
-        }
+        $mail = new w2p_Utilities_Mail;
+        $mail->To($user->user_email, true);
+        $mail->Subject($subject);
+        $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
+        $mail->Send();
     }
 
     public function notifyContacts($isNotNew)
@@ -570,13 +550,10 @@ class CProject extends w2p_Core_BaseObject
 
             foreach ($users as $row) {
                 $mail = new w2p_Utilities_Mail;
+                $mail->To($row['contact_email'], true);
+                $mail->Subject($subject);
                 $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
-                $mail->Subject($subject, $this->_locale_char_set);
-
-                if ($mail->ValidEmail($row['contact_email'])) {
-                    $mail->To($row['contact_email'], true);
-                    $mail->Send();
-                }
+                $mail->Send();
             }
         }
         return '';

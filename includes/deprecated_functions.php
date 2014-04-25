@@ -1,7 +1,4 @@
 <?php
-if (!defined('W2P_BASE_DIR')) {
-    die('You should not access this file directly.');
-}
 /**
 * This file exists in order to identify individual functions which will be
 *   deprecated in coming releases.  In the documentation for each function,
@@ -490,4 +487,26 @@ function cleanText($text)
     $text = utf8_encode($text);
 
     return $text;
+}
+
+/** @deprecated since 3.2 */
+function resource_presave()
+{
+    trigger_error(__FUNCTION__ . " has been deprecated in v3.2 and will be removed by v5.0. There is no replacement.", E_USER_NOTICE);
+}
+
+/** @deprecated since 3.2 */
+function resource_postsave()
+{
+    trigger_error(__FUNCTION__ . " has been deprecated in v3.2 and will be removed by v5.0. There is no replacement.", E_USER_NOTICE);
+}
+
+/** @deprecated since 3.2 */
+function showFVar(&$var, $title = '')
+{
+    trigger_error(__FUNCTION__ . " has been deprecated in v3.2 and will be removed by v5.0. There is no replacement.", E_USER_NOTICE);
+    echo '<h1>' . $title . '</h1>';
+    echo '<pre>';
+    print_r($var);
+    echo '</pre>';
 }

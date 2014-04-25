@@ -39,6 +39,14 @@ class w2p_Output_HTML_ViewHelper extends w2p_Output_HTML_Base
             case 'description':
                 $output = w2p_textarea($fieldValue);
                 break;
+            case 'company':
+            case 'department':
+                $class  = 'C'.ucfirst($suffix);
+                $obj = new $class();
+                $obj->load($fieldValue);
+                $link = '?m='. w2p_pluralize($suffix) .'&a=view&'.$suffix.'_id='.$fieldValue;
+                $output = '<a href="'.$link.'">'.$obj->{"$suffix".'_name'}.'</a>';
+                break;
             default:
                 $output = htmlspecialchars($fieldValue, ENT_QUOTES);
         }
@@ -48,6 +56,20 @@ class w2p_Output_HTML_ViewHelper extends w2p_Output_HTML_Base
 
     public function showField($fieldName, $fieldValue)
     {
-        echo $this->addField($fieldName, $fieldValue, $options, $values);
+        echo $this->addField($fieldName, $fieldValue);
+    }
+
+    public function showAddress($name, $object)
+    {
+        $countries = w2PgetSysVal('GlobalCountries');
+
+        $output  = '<div style="margin-left: 11em;">';
+        $output .= '<a href="http://maps.google.com/maps?q=' . $object->{$name . '_address1'} . '+' . $object->{$name . '_address2'} . '+' . $object->{$name . '_city'} . '+' . $object->{$name . '_state'} . '+' . $object->{$name . '_zip'} . '+' . $object->{$name . '_country'} . '" target="_blank">';
+        $output .= '<img src="' . w2PfindImage('googlemaps.gif') . '" class="right" alt="Find It on Google" />';
+        $output .= '</a>';
+        $output .=  $object->{$name . '_address1'} . (($object->{$name . '_address2'}) ? '<br />' . $object->{$name . '_address2'} : '') . (($object->{$name . '_city'}) ? '<br />' . $object->{$name . '_city'} : '') . (($object->{$name . '_state'}) ? ' ' . $object->{$name . '_state'} : '') . (($object->{$name . '_zip'}) ? ', ' . $object->{$name . '_zip'} : '') . (($object->{$name . '_country'}) ? '<br />' . $countries[$object->{$name . '_country'}] : '');
+        $output .= '</div>';
+
+        echo $output;
     }
 }

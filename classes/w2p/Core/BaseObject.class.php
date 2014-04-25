@@ -516,7 +516,9 @@ abstract class w2p_Core_BaseObject extends w2p_System_Event implements w2p_Syste
     public function getAllowedRecords($uid, $fields = '*', $orderby = '', $index = null, $extra = null, $table_alias = '')
     {
         $uid = (int) $uid;
-        $uid || exit('FATAL ERROR ' . get_class($this) . '::getAllowedRecords failed');
+        if (!$uid) {
+            return array();
+        }
         $deny = $this->_perms->getDeniedItems($this->_tbl_module, $uid);
         $allow = $this->_perms->getAllowedItems($this->_tbl_module, $uid);
 
@@ -536,8 +538,6 @@ abstract class w2p_Core_BaseObject extends w2p_System_Event implements w2p_Syste
             if ((array_search('0', $allow)) === false) {
                 //If 0 (All Items of a module) are not permited then just add the allowed items only
                 $q->addWhere(($table_alias ? $table_alias . '.' : '') . $this->_tbl_key . ' IN (' . implode(',', $allow) . ')');
-            } else {
-                //If 0 (All Items of a module) are permited then don't add a where clause so the user is permitted to see all
             }
             //Denials are only required if we were able to see anything in the first place so now we handle the denials
             if (count($deny)) {
@@ -569,7 +569,9 @@ abstract class w2p_Core_BaseObject extends w2p_System_Event implements w2p_Syste
     public function getAllowedSQL($uid, $index = null)
     {
         $uid = (int) $uid;
-        $uid || exit('FATAL ERROR ' . get_class($this) . '::getAllowedSQL failed');
+        if (!$uid) {
+            return array();
+        }
         $deny = $this->_perms->getDeniedItems($this->_tbl_module, $uid);
         $allow = $this->_perms->getAllowedItems($this->_tbl_module, $uid);
 
@@ -581,8 +583,6 @@ abstract class w2p_Core_BaseObject extends w2p_System_Event implements w2p_Syste
             if ((array_search('0', $allow)) === false) {
                 //If 0 (All Items of a module) are not permited then just add the allowed items only
                 $where[] = $index . ' IN (' . implode(',', $allow) . ')';
-            } else {
-                //If 0 (All Items of a module) are permited then don't add a where clause so the user is permitted to see all
             }
             //Denials are only required if we were able to see anything in the first place so now we handle the denials
             if (count($deny)) {

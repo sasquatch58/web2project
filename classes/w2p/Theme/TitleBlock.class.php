@@ -17,9 +17,6 @@ class w2p_Theme_TitleBlock {
     /**
     @var array An array of the table 'cells' to the right of the title block and for bread-crumbs */
     public $cells = null;
-    /**
-    @var string The reference for the context help system */
-    public $helpref = '';
 
     protected $_AppUI = null;
     protected $_w2Pconfig = null;
@@ -30,7 +27,7 @@ class w2p_Theme_TitleBlock {
      * have permission to view the help module, then the context help icon is
      * not displayed.
      */
-    public function __construct($title, $icon = '', $module = '', $helpref = '') {
+    public function __construct($title, $icon = '', $module = '') {
         global $AppUI;
         $this->_AppUI = $AppUI;
         global $w2Pconfig;
@@ -39,7 +36,6 @@ class w2p_Theme_TitleBlock {
         $this->title = $title;
         $this->icon = $icon;
         $this->module = $module;
-        $this->helpref = $helpref;
         $this->cells1 = array();
         $this->cells2 = array();
         $this->crumbs = array();
@@ -90,6 +86,20 @@ class w2p_Theme_TitleBlock {
     public function addCrumb($link, $label, $icon = '') {
         $this->crumbs[$link] = array($label, $icon);
     }
+
+    /**
+     * @param $m
+     * @param $id
+     * @param string $a
+     */
+    public function addViewLink($module, $key, $a = 'view')
+    {
+        if ($key) {
+            $this->addCrumb('?m=' . w2p_pluralize($module) . '&a=' . $a .
+                    '&' . $module . '_id=' . $key, 'view this ' . $module);
+        }
+    }
+
     /**
      * Adds a table 'cell' to the right-aligned bread-crumbs
      *
@@ -108,12 +118,9 @@ class w2p_Theme_TitleBlock {
      * The drawing function
      */
     public function show() {
-        global $a, $m;
+        global $a;
+        $m = $this->module;
         $this->loadExtraCrumbs($m, $a);
-        $uistyle = $this->_AppUI->getPref('UISTYLE') ? $this->_AppUI->getPref('UISTYLE') : $this->_w2Pconfig['host_style'];
-        if (!$uistyle) {
-            $uistyle = 'web2project';
-        }
 
         $s = '';
 

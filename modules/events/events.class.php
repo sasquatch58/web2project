@@ -275,18 +275,18 @@ class CEvent extends w2p_Core_BaseObject
 				//Daily View
 				//show all
 				if ($periodLength <= 1) {
-					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
+					$recEventDate = self::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 				}
 				//Weekly or Monthly View and Hourly Recurrent Events
 				//only show hourly recurrent event one time and add string 'hourly'
 				elseif ($periodLength > 1 && $eventListRec[$i]['event_recurs'] == 1 && $j == 0) {
-					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
+					$recEventDate = self::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 					$eventListRec[$i]['event_name'] = $eventListRec[$i]['event_name'] . ' (' . $AppUI->_('Hourly') . ')';
 				}
 				//Weekly and Monthly View and higher recurrence mode
 				//show all events of recurrence > 1
 				elseif ($periodLength > 1 && $eventListRec[$i]['event_recurs'] > 1) {
-					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
+					$recEventDate = self::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 				}
 
 				//add values to the eventsArray if check for recurrent event was positive
@@ -396,7 +396,7 @@ class CEvent extends w2p_Core_BaseObject
 
         $mail = new w2p_Utilities_Mail();
         if ($clash) {
-            $mail->Subject($this->_AppUI->_('Requested Event') . ': ' . $this->event_name, $this->_locale_char_set);
+            $mail->Subject($this->_AppUI->_('Requested Event') . ': ' . $this->event_name);
         } else {
 			$type = $update ? $this->_AppUI->_('Event updated') : $this->_AppUI->_('New event');
             $mail->Subject($type . ': ' . $this->event_name);

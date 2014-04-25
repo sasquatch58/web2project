@@ -61,7 +61,8 @@ class CContact extends w2p_Core_BaseObject
         return ('contact_name' == $name) ? $this->contact_display_name : '';
     }
 
-    protected function hook_preStore() {
+    protected function hook_preStore()
+    {
         $this->contact_company = (int) $this->contact_company;
         $this->contact_department = (int) $this->contact_department;
         $this->contact_owner = ((int) $this->contact_owner) ? (int) $this->contact_owner : (int) $this->_AppUI->user_id;
@@ -307,29 +308,14 @@ class CContact extends w2p_Core_BaseObject
 
     public function notify()
     {
-        $result = false;
-
-        $df = $this->_AppUI->getPref('SHDATEFORMAT');
-        $df .= ' ' . $this->_AppUI->getPref('TIMEFORMAT');
+        $emailManager = new w2p_Output_EmailManager($this->_AppUI);
+        $body = $emailManager->getContactUpdateNotify(null, $this);
 
         $mail = new w2p_Utilities_Mail();
-        $mail->Subject('Hello', $this->_locale_char_set);
-
-        if ($this->contact_email) {
-            $emailManager = new w2p_Output_EmailManager($this->_AppUI);
-            $body = $emailManager->getContactUpdateNotify(null, $this);
-
-            $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
-        }
-
-        if ($mail->ValidEmail($this->contact_email)) {
-            $mail->To($this->contact_email, true);
-            $result = $mail->Send();
-        } else {
-            $this->_error['email_address'] = 'This is not a validate email address';
-        }
-
-        return $result;
+        $mail->To($this->contact_email, true);
+        $mail->Subject('Hello');
+        $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
+        return $mail->Send();
     }
 
     public function updateNotify()

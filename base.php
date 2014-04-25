@@ -16,7 +16,7 @@ if (!defined('E_DEPRECATED')) {
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_STRICT);
 //error_reporting(-1);
 
-define('W2P_PERFORMANCE_DEBUG', false);
+define('W2P_PERFORMANCE_DEBUG', true);
 define('MIN_PHP_VERSION', '5.3.8');
 //date_default_timezone_set('America/New_York');
 //Performance Debug Initialization
@@ -108,6 +108,7 @@ define('WDAY_SATURDAY', 6);
 define('SEC_MINUTE', 60);
 define('SEC_HOUR', 3600);
 define('SEC_DAY', 86400);
+define('SECONDS_PER_DAY', 86400);
 
 define('UI_MSG_OK', 1);
 define('UI_MSG_ALERT', 2);
@@ -125,6 +126,12 @@ define('UI_OUTPUT_MASK', 0xF0);
 define('UI_OUTPUT_HTML', 0);
 define('UI_OUTPUT_JS', 0x10);
 define('UI_OUTPUT_RAW', 0x20);
+
+define('PERM_DENY', '0');
+define('PERM_EDIT', '-1');
+define('PERM_READ', '1');
+
+define('PERM_ALL', '-1');
 
 define('ACCESS_DENIED', 'm=public&a=access_denied');
 

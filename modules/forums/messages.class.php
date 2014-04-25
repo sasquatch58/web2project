@@ -196,20 +196,16 @@ class CForum_Message extends w2p_Core_BaseObject
 
         $mail = new w2p_Utilities_Mail();
         $subj_prefix = $this->_AppUI->_('forumEmailSubj', UI_OUTPUT_RAW);
-        $mail->Subject($subj_prefix . ' ' . $this->message_title, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
+        $mail->Subject($subj_prefix . ' ' . $this->message_title);
 
         $emailManager = new w2p_Output_EmailManager($this->_AppUI);
         $body = $emailManager->getForumWatchEmail($this, $forum_name, $message_from);
         $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
 
         while ($row = $q->fetchRow()) {
-            if ($mail->ValidEmail($row['contact_email'])) {
-                $mail->To($row['contact_email'], true);
-                $mail->Send();
-            }
+            $mail->To($row['contact_email'], true);
+            $mail->Send();
         }
         $q->clear();
-        return;
     }
-
 }

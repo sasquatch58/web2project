@@ -61,7 +61,6 @@ class w2p_Utilities_Mail extends PHPMailer
      */
     public function __construct()
     {
-        $this->autoCheck(true);
         $this->defer = w2PgetConfig('mail_defer');
         $this->canEncode = function_exists('imap_8bit') && 'us-ascii' != $this->charset;
         $this->hasMbStr = function_exists('mb_substr');
@@ -82,26 +81,14 @@ class w2p_Utilities_Mail extends PHPMailer
         $this->From(w2PgetConfig('admin_email', 'admin@web2project.net'), w2PgetConfig('company_name'));
     }
 
-    /**
-     *    activate or desactivate the email addresses validator
-     *
-     *    ex: autoCheck( TRUE ) turn the validator on
-     *    by default autoCheck feature is on
-     *
-     *    @param boolean    $bool set to TRUE to turn on the auto validation
-     *    @access public
-     */
-    public function autoCheck($bool)
-    {
-        $this->checkAddress = (bool) $bool;
-        return true;
-    }
+    /** @deprecated since 3.2*/
+    public function autoCheck() {   return true;    }
 
     /**
      *    Define the subject line of the email
      *    @param string $subject any monoline string
      */
-    public function Subject($subject, $notUsed = '')
+    public function Subject($subject)
     {
         $this->Subject = w2PgetConfig('email_prefix') . ' ' . $subject;
         return true;
@@ -179,9 +166,7 @@ class w2p_Utilities_Mail extends PHPMailer
             $this->ato[] = $to;
         }
 
-        if ($this->checkAddress == true) {
-            $this->CheckAddresses($this->ato);
-        }
+        $this->CheckAddresses($this->ato);
 
         foreach ($this->ato as $to_address) {
             if (strpos($to_address, '<') !== false) {
@@ -205,9 +190,7 @@ class w2p_Utilities_Mail extends PHPMailer
 
         $this->acc = (is_array($cc)) ? explode(',', $cc) : $cc;
 
-        if ($this->checkAddress == true) {
-            $this->CheckAddresses($this->acc);
-        }
+        $this->CheckAddresses($this->acc);
 
         foreach ($this->acc as $cc_address) {
             if (strpos($cc_address, '<') !== false) {
@@ -231,9 +214,7 @@ class w2p_Utilities_Mail extends PHPMailer
 
         $this->abcc = (is_array($bcc)) ? explode(',', $bcc) : $bcc;
 
-        if ($this->checkAddress == true) {
-            $this->CheckAddresses($this->abcc);
-        }
+        $this->CheckAddresses($this->abcc);
 
         foreach ($this->abcc as $bcc_address) {
             if (strpos($bcc_address, '<') !== false) {
@@ -281,18 +262,17 @@ class w2p_Utilities_Mail extends PHPMailer
      *        $priority : integer taken between 1 (highest) and 5 ( lowest )
      *        ex: $mail->Priority(1) ; => Highest
      */
-    public function Priority($priority)
+    public function Priority($priority = 5)
     {
-        if ((!intval($priority)) || (intval($priority) < 1) || (intval($priority) > 5)) {
-            return false;
-        }
+        $priority = max(1, (int) $priority);
+        $priority = min(5, $priority);
 
         $this->Priority = $priority;
         return true;
     }
 
     /**
-     *    Overload the Send method from PHPMailer to provide defered mails
+     *    Overload the Send method from PHPMailer to provide deferred mails
      *    @access public
      */
     public function Send()
@@ -321,16 +301,12 @@ class w2p_Utilities_Mail extends PHPMailer
         if (is_array($to) && count($to)) {
             $newArray = array_flip($to) + array_flip($this->ato);
             $this->ato = array_keys($newArray);
-        } elseif (is_array($this->ato) && count($this->ato)) {
-            //Do nothing, ato is good to go
         } else {
             //There is no email addresses to process, so lets just leave.
             return false;
         }
 
-        if ($this->checkAddress == true) {
-            $this->CheckAddresses($this->ato);
-        }
+        $this->CheckAddresses($this->ato);
 
         foreach ($this->ato as $to_address) {
             if (strpos($to_address, '<') !== false) {
@@ -438,5 +414,4 @@ class w2p_Utilities_Mail extends PHPMailer
         }
         return true;
     }
-
 }

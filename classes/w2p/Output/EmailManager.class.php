@@ -13,6 +13,8 @@
  * @author      D. Keith Casey, Jr. <caseydk@users.sourceforge.net>
  */
 
+use Web2project\Output\EmailTemplate;
+
 class w2p_Output_EmailManager
 {
 
@@ -20,7 +22,8 @@ class w2p_Output_EmailManager
     public $subject = '';
     public $body = '';
 
-    protected $_AppUI;
+    protected $_AppUI = null;
+    protected $templater = null;
 
     public function __construct(w2p_Core_CAppUI $AppUI = null)
     {
@@ -28,25 +31,9 @@ class w2p_Output_EmailManager
             trigger_error('The w2p_Output_EmailManager constructor should receive $AppUI (an w2p_Core_CAppUI object) for proper usage.', E_USER_NOTICE);
         }
 
+        $this->templater = new EmailTemplate();
+
         $this->_AppUI = $AppUI;
-    }
-
-    /**
-     * @deprecated
-     */
-    public function getCalendarConflictEmail(w2p_Core_CAppUI $AppUI = null)
-    {
-        trigger_error("getCalendarConflictEmail has been deprecated in v3.0 and will be removed by v4.0. Please use getEventNotify() instead.", E_USER_NOTICE);
-
-        $this->_AppUI = (!is_null($AppUI)) ? $AppUI : $this->_AppUI;
-
-        $body = '';
-        $body .= "You have been invited to an event by ".$this->_AppUI->user_display_name;
-        $body .= "\nHowever, either you or another intended invitee has a competing event\n";
-        $body .= $this->_AppUI->user_display_name." has requested that you reply to this message\n";
-        $body .= "and confirm if you can or can not make the requested time.\n\n";
-
-        return $body;
     }
 
     public function getEventNotify(CEvent $event, $clash, $users)
@@ -96,28 +83,46 @@ class w2p_Output_EmailManager
         return $body;
     }
 
+    /**
+     * @deprecated
+     */
+    public function getCalendarConflictEmail(w2p_Core_CAppUI $AppUI = null)
+    {
+        trigger_error("getCalendarConflictEmail has been deprecated in v3.0 and will be removed by v4.0. Please use getEventNotify() instead.", E_USER_NOTICE);
+
+        $this->_AppUI = (!is_null($AppUI)) ? $AppUI : $this->_AppUI;
+
+        $body  = "You have been invited to an event by user_display_name\n";
+        $body .= "However, either you or another intended invitee has a competing event\n";
+        $body .= "user_display_name has requested that you reply to this message\n";
+        $body .= "and confirm if you can or can not make the requested time.\n\n";
+
+        $body = $this->templater->render($body, $this->_AppUI);
+
+        return $body;
+    }
+
     public function getContactUpdateNotify(w2p_Core_CAppUI $AppUI = null, CContact $contact)
     {
         $this->_AppUI = (!is_null($AppUI)) ? $AppUI : $this->_AppUI;
 
-        $q = new w2p_Database_Query;
-        $q->addTable('companies');
-        $q->addQuery('company_id, company_name');
-        $q->addWhere('company_id = ' . (int) $contact->contact_company);
-        $contact_company = $q->loadHashList();
-        $q->clear();
+        $company = new CCompany();
+        $company->load($contact->contact_company);
+        $contact->company_name = $company->company_name;
+        $contact->user_display_name = $this->_AppUI->user_display_name;
 
-        $body = "Dear $contact->contact_title $contact->contact_display_name,";
+        $body  = "Dear contact_title contact_display_name,";
         $body .= "\n\nIt was very nice to visit you";
-        $body .= ($contact->contact_company) ? " and " . $contact_company[$contact->contact_company] . "." : ".";
+        $body .= ($contact->contact_company) ? " and company_name." : ".";
         $body .= " Thank you for all the time that you spent with me.";
-        $body .= "\n\nI have entered the data from your business card into my contact data base so that we may keep in touch.";
-        $body .= "\n\nWe have implemented a system which allows you to view the information that I've recorded and give you the opportunity to correct it or add information as you see fit. Please click on this link to view what I've recorded:";
-        $body .= "\n\n" . W2P_BASE_URL . "/updatecontact.php?updatekey=".$contact->contact_updatekey;
+        $body .= "\n\nI have entered the data from your business card into my contact database so that we may keep in touch.";
+        $body .= " We have implemented a system which allows you to view the information that I've recorded and give you the opportunity to correct it or add information as you see fit. Please click on this link to view what I've recorded:";
+        $body .= "\n\n" . W2P_BASE_URL . "/updatecontact.php?updatekey=contact_updatekey";
         $body .= "\n\nI assure you that the information will be held in strict confidence and will not be available to anyone other than me. I realize that you may not feel comfortable filling out the entire form so please supply only what you're comfortable with.";
         $body .= "\n\nThank you. I look forward to seeing you again, soon.";
-        $body .= "\n\nBest Regards,\n\n";
-        $body .= $this->_AppUI->user_display_name;
+        $body .= "\n\nBest Regards,\nuser_display_name";
+
+        $body = $this->templater->render($body, $contact);
 
         return $body;
     }
@@ -126,29 +131,33 @@ class w2p_Output_EmailManager
     {
         $this->_AppUI = (!is_null($AppUI)) ? $AppUI : $this->_AppUI;
 
-        $body = "\n\nFile " . $file->file_name . ' was ' . $file->_message;
-        $body .= ' by ' . $this->_AppUI->user_display_name;
+        $file->user_display_name = $this->_AppUI->user_display_name;
+        $body = "\n\nFile file_name was _message by user_display_name";
+
+        $body = $this->templater->render($body, $file);
 
         return $body;
     }
 
     public function getForumWatchEmail(CForum_Message $message, $forum_name, $message_from)
     {
+        $message->forum_name = $forum_name;
+        $message->message_from = $message_from;
 
         $body = $this->_AppUI->_('forumEmailBody', UI_OUTPUT_RAW);
-        ;
-        $body .= "\n\n" . $this->_AppUI->_('Forum', UI_OUTPUT_RAW) . ': ' . $forum_name;
-        $body .= "\n" . $this->_AppUI->_('Subject', UI_OUTPUT_RAW) . ': ' . $message->message_title;
-        $body .= "\n" . $this->_AppUI->_('Message From', UI_OUTPUT_RAW) . ': ' . $message_from;
-        $body .= "\n\n" . W2P_BASE_URL . '/index.php?m=forums&a=viewer&forum_id=' . $message->message_forum;
-        $body .= "\n\n" . $message->message_body;
+        $body .= "\n\n" . $this->_AppUI->_('Forum', UI_OUTPUT_RAW) . ': forum_name';
+        $body .= "\n" . $this->_AppUI->_('Subject', UI_OUTPUT_RAW) . ': message_title';
+        $body .= "\n" . $this->_AppUI->_('Message From', UI_OUTPUT_RAW) . ': message_from';
+        $body .= "\n\n" . W2P_BASE_URL . '/index.php?m=forums&a=viewer&forum_id=message_forum';
+        $body .= "\n\nmessage_body";
+
+        $body = $this->templater->render($body, $message);
 
         return $body;
     }
 
     public function getFileNotify(CFile $file)
     {
-
         $body = $this->_AppUI->_('Project') . ': ' . $file->_project->project_name;
         $body .= "\n" . $this->_AppUI->_('URL') . ':     ' . W2P_BASE_URL . '/index.php?m=projects&a=view&project_id=' . $file->_project->project_id;
 
@@ -175,10 +184,8 @@ class w2p_Output_EmailManager
     {
         $body = $this->_AppUI->_('Project', UI_OUTPUT_RAW) . ":\t" . $projname . "\n";
         $body .= $this->_AppUI->_('Task', UI_OUTPUT_RAW) . ":\t\t" . $task->task_name . "\n";
-//TODO: Priority not working for some reason, will wait till later
         $body .= $this->_AppUI->_('Priority', UI_OUTPUT_RAW) . ":\t\t" . $task->task_priority . "\n";
-//Priority does work now
-        $body .= $this->_AppUI->_('Progress', UI_OUTPUT_RAW) . ":\t\t" . $task->task_percent_complete . " % \n";
+        $body .= $this->_AppUI->_('Progress', UI_OUTPUT_RAW) . ":\t\t" . $task->task_percent_complete . "%\n";
         $tmp_tz = $this->_AppUI->getPref('TIMEZONE');
         $user_prefs = $this->_AppUI->loadPrefs($user['assignee_id'], true);
         $this->_AppUI->user_prefs['TIMEZONE'] = $user_prefs['TIMEZONE'];
@@ -229,7 +236,6 @@ class w2p_Output_EmailManager
 
     public function getTaskRemind(CTask $task, $msg, $project_name, $contacts)
     {
-
         $body = $this->_AppUI->_('Task Due', UI_OUTPUT_RAW) . ': ' . $msg . "\n";
         $body .= $this->_AppUI->_('Project', UI_OUTPUT_RAW) . ': ' . $project_name . "\n";
         $body .= $this->_AppUI->_('Task', UI_OUTPUT_RAW) . ': ' . $task->task_name . "\n";
@@ -280,7 +286,6 @@ class w2p_Output_EmailManager
 
     public function getProjectNotifyOwner(CProject $project, $isNotNew)
     {
-
         $status = (intval($isNotNew)) ? 'Updated' : 'Created';
 
         $body = $this->_AppUI->_('Project') . ': ' . $project->project_name . ' ' . $this->_AppUI->_('has been') . ' ' . $this->_AppUI->_($status);
@@ -302,7 +307,6 @@ class w2p_Output_EmailManager
 
     public function getProjectNotifyContacts(CProject $project, $isNotNew)
     {
-
         $status = (intval($isNotNew)) ? 'Updated' : 'Created';
 
         $body = $this->_AppUI->_('Project') . ": $project->project_name Has Been $status Via Project Manager. You can view the Project by clicking: ";
@@ -323,7 +327,7 @@ class w2p_Output_EmailManager
     public function getNotifyNewUser($username)
     {
         $body = "Dear $username,\n\n" .
-                $body .= "Congratulations! Your account has been activated by the administrator.\n";
+        $body .= "Congratulations! Your account has been activated by the administrator.\n";
         $body .= "Please use the login information provided earlier.\n\n";
         $body .= "You may login at the following URL: " . W2P_BASE_URL . "\n\n";
         $body .= "If you have any difficulties or questions, please ask the administrator for help.\n";
@@ -382,5 +386,4 @@ class w2p_Output_EmailManager
 
         return $body;
     }
-
 }

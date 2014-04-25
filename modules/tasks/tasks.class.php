@@ -135,11 +135,6 @@ class CTask extends w2p_Core_BaseObject
     {
         $baseErrorMsg = get_class($this) . '::store-check failed - ';
 
-        $this->task_id = (int) $this->task_id;
-
-        if (is_null($this->task_priority) || !is_numeric((int) $this->task_priority)) {
-            $this->_error['task_priority'] = $baseErrorMsg . 'task priority is NULL';
-        }
         if ($this->task_name == '') {
             $this->_error['task_name'] = $baseErrorMsg . 'task name is NULL';
         }
@@ -167,32 +162,12 @@ class CTask extends w2p_Core_BaseObject
             }
         }
 
-        // ensure changes to checkboxes are honoured
-        $this->task_milestone = (int) $this->task_milestone;
-        $this->task_dynamic = (int) $this->task_dynamic;
-
-        $this->task_percent_complete = (int) $this->task_percent_complete;
-
-        $this->task_target_budget = $this->task_target_budget ? $this->task_target_budget : 0.00;
-
-        if (!$this->task_duration || $this->task_milestone) {
-            $this->task_duration = '0';
-        }
         if ($this->task_milestone) {
             if ($this->task_start_date && $this->task_start_date != '0000-00-00 00:00:00') {
                 $this->task_end_date = $this->task_start_date;
             } else {
                 $this->task_start_date = $this->task_end_date;
             }
-        }
-        if (!$this->task_duration_type) {
-            $this->task_duration_type = 1;
-        }
-        if (!$this->task_related_url) {
-            $this->task_related_url = '';
-        }
-        if (!$this->task_notify) {
-            $this->task_notify = 0;
         }
 
         /*
@@ -219,8 +194,6 @@ class CTask extends w2p_Core_BaseObject
         } else {
             $this_dependencies = explode(',', $this->getDependencies());
         }
-        // Set to false for recursive updateDynamic calls etc.
-        $addedit = false;
 
         // Have deps
         if (array_sum($this_dependencies)) {
@@ -761,10 +734,21 @@ class CTask extends w2p_Core_BaseObject
 
         $q = $this->_getQuery();
         $this->task_updated = $q->dbfnNowWithTZ();
-        $this->task_target_budget = filterCurrency($this->task_target_budget);
+        $this->task_percent_complete = (int) $this->task_percent_complete;
+
         $this->task_owner = (int) $this->task_owner ? $this->task_owner : $this->_AppUI->user_id;
         $this->task_creator = (int) $this->task_creator ? $this->task_creator : $this->_AppUI->user_id;
+
         $this->task_contacts = is_array($this->task_contacts) ? $this->task_contacts : explode(',', $this->task_contacts);
+
+        // ensure changes to checkboxes are honoured
+        $this->task_milestone = (int) $this->task_milestone;
+        $this->task_dynamic = (int) $this->task_dynamic;
+        $this->task_notify = (int) $this->task_notify;
+
+        $this->task_duration = (!$this->task_duration || $this->task_milestone) ? $this->task_duration : 0;
+        $this->task_duration_type = (int) $this->task_duration_type ? $this->task_duration_type : 1;
+        $this->task_priority = (int) $this->task_priority ? $this->task_priority : 0;
 
         parent::hook_preStore();
     }
@@ -1170,8 +1154,7 @@ class CTask extends w2p_Core_BaseObject
 
     public function notifyOwner()
     {
-        $mail = new w2p_Utilities_Mail();
-        $mail->Subject($projname . '::' . $this->task_name . ' ' . $this->_AppUI->_($this->_action, UI_OUTPUT_RAW), $this->_locale_char_set);
+        $projname = $project->load($this->task_project)->project_name;
 
         // c = creator
         // a = assignee
@@ -1200,11 +1183,11 @@ class CTask extends w2p_Core_BaseObject
         if (count($users)) {
             $emailManager = new w2p_Output_EmailManager($this->_AppUI);
             $body = $emailManager->getTaskNotifyOwner($this);
-            $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
-        }
 
-        if ($mail->ValidEmail($users[0]['owner_email'])) {
+            $mail = new w2p_Utilities_Mail();
             $mail->To($users[0]['owner_email'], true);
+            $mail->Subject($projname . '::' . $this->task_name . ' ' . $this->_AppUI->_($this->_action, UI_OUTPUT_RAW));
+            $mail->Body($body, isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : '');
             $mail->Send();
         }
 
@@ -1212,15 +1195,10 @@ class CTask extends w2p_Core_BaseObject
     }
 
 //TODO: additional comment will be included in email body
-//TODO: should we resolve $projname ?
     public function notify($comment = '')
     {
-        $mail = new w2p_Utilities_Mail();
-
 		$project = new CProject();
 		$projname = $project->load($this->task_project)->project_name;
-
-        $mail->Subject($projname . '::' . $this->task_name . ' ' . $this->_AppUI->_($this->_action, UI_OUTPUT_RAW), $this->_locale_char_set);
 
         // c = creator
         // a = assignee
@@ -1254,16 +1232,14 @@ class CTask extends w2p_Core_BaseObject
 
         foreach ($users as $row) {
             if ($mail_owner || $row['assignee_id'] != $this->_AppUI->user_id) {
-                if ($mail->ValidEmail($row['assignee_email'])) {
+                $emailManager = new w2p_Output_EmailManager($this->_AppUI);
+                $body = $emailManager->getTaskNotify($this, $row, $projname);
 
-                    $emailManager = new w2p_Output_EmailManager($this->_AppUI);
-                    $body = $emailManager->getTaskNotify($this, $row, $projname);
-
-                    $mail->Body($body, (isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : ''));
-
-                    $mail->To($row['assignee_email'], true);
-                    $mail->Send();
-                }
+                $mail = new w2p_Utilities_Mail();
+                $mail->To($row['assignee_email'], true);
+                $mail->Subject($projname . '::' . $this->task_name . ' ' . $this->_AppUI->_($this->_action, UI_OUTPUT_RAW));
+                $mail->Body($body, (isset($GLOBALS['locale_char_set']) ? $GLOBALS['locale_char_set'] : ''));
+                $mail->Send();
             }
         }
         return '';
@@ -1278,7 +1254,7 @@ class CTask extends w2p_Core_BaseObject
         $mail_recipients = array();
         $q = $this->_getQuery();
         if ((int) $this->task_id > 0 && (int) $this->task_project > 0) {
-            if (isset($assignees) && $assignees == 'on') {
+            if ('on' == $assignees) {
                 $q->addTable('user_tasks', 'ut');
                 $q->leftJoin('users', 'ua', 'ua.user_id = ut.user_id');
                 $q->leftJoin('contacts', 'c', 'c.contact_id = ua.user_contact');
@@ -1294,7 +1270,7 @@ class CTask extends w2p_Core_BaseObject
                     $mail_recipients[$myContact['contact_email']] = $myContact['contact_name'];
                 }
             }
-            if (isset($task_contacts) && $task_contacts == 'on') {
+            if ('on' == $task_contacts) {
                 $q->addTable('task_contacts', 'tc');
                 $q->leftJoin('contacts', 'c', 'c.contact_id = tc.contact_id');
                 $q->addQuery('c.contact_email, c.contact_display_name as contact_name');
@@ -1306,7 +1282,7 @@ class CTask extends w2p_Core_BaseObject
                     $mail_recipients[$myContact['contact_email']] = $myContact['contact_name'];
                 }
             }
-            if (isset($project_contacts) && $project_contacts == 'on') {
+            if ('on' == $project_contacts) {
                 $q->addTable('project_contacts', 'pc');
                 $q->leftJoin('contacts', 'c', 'c.contact_id = pc.contact_id');
                 $q->addQuery('c.contact_email, c.contact_display_name as contact_name');
@@ -1343,7 +1319,7 @@ class CTask extends w2p_Core_BaseObject
             }
             $q->clear(); // Reset to the default state.
             // If this should be sent to a specific user, add their contact details here
-            if (isset($specific_user) && $specific_user) {
+            if ((int) $specific_user) {
                 $q->addTable('users', 'u');
                 $q->leftJoin('contacts', 'c', 'c.contact_id = u.user_contact');
                 $q->addQuery('c.contact_email, c.contact_display_name as contact_name');
@@ -1361,25 +1337,23 @@ class CTask extends w2p_Core_BaseObject
 
             // Build the email and send it out.
             $char_set = isset($this->_locale_char_set) ? $this->_locale_char_set : '';
-            $mail = new w2p_Utilities_Mail();
+
             // Grab the subject from user preferences
             $prefix = $this->_AppUI->getPref('TASKLOGSUBJ');
-            $mail->Subject($prefix . ' ' . $log->task_log_name, $char_set);
 
             $emailManager = new w2p_Output_EmailManager($this->_AppUI);
             $body = $emailManager->getTaskEmailLog($this, $log);
+
+            $mail = new w2p_Utilities_Mail();
+            $mail->Subject($prefix . ' ' . $log->task_log_name);
             $mail->Body($body, $char_set);
 
             $recipient_list = '';
             $toList = array();
 
             foreach ($mail_recipients as $email => $name) {
-                if ($mail->ValidEmail($email)) {
-                    $toList[$email] = $email;
-                    $recipient_list .= $email . ' (' . $name . ")\n";
-                } else {
-                    $recipient_list .= "Invalid email address '$email' for '$name' not sent \n";
-                }
+                $toList[$email] = $email;
+                $recipient_list .= $email . ' (' . $name . ")\n";
             }
 
             $sendToList = array_keys($mail_recipients);
@@ -1431,6 +1405,7 @@ class CTask extends w2p_Core_BaseObject
         $q->addTable('tasks', 't');
         if ($user_id) {
             $q->innerJoin('user_tasks', 'ut', 't.task_id=ut.task_id');
+            $q->addWhere('ut.user_id = ' . (int) $user_id);
         }
         $q->innerJoin('projects', 'projects', 't.task_project = projects.project_id');
         $q->innerJoin('companies', 'companies', 'projects.project_company = companies.company_id');
@@ -1443,10 +1418,6 @@ class CTask extends w2p_Core_BaseObject
         if (($template_status = w2PgetConfig('template_projects_status_id')) != '') {
             $q->addWhere('project_status <> ' . $template_status);
         }
-        if ($user_id) {
-            $q->addWhere('ut.user_id = ' . (int) $user_id);
-        }
-
         if ($company_id) {
             $q->addWhere('projects.project_company = ' . (int) $company_id);
         }
@@ -1467,8 +1438,12 @@ class CTask extends w2p_Core_BaseObject
         // check tasks access
         $result = array();
         foreach ($tasks as $key => $row) {
-            $obj->load($row['task_id']);
-            $canAccess = $obj->canAccess();
+//we have everything already loaded in $row.
+//we only need to populate those fields of $obj that are used in canAccess
+			$obj->task_id=$row['task_id'];
+			$obj->task_access=$row['task_access'];
+			$obj->task_owner=$row['task_owner'];
+            $canAccess = $obj->canAccess(0,false);
             if (!$canAccess) {
                 continue;
             }
@@ -1478,18 +1453,22 @@ class CTask extends w2p_Core_BaseObject
         return $result;
     }
 
-    public function canAccess($user_id = 0)
+    public function canAccess($user_id = 0, $task_data_not_loaded=true)
     {
-        $this->load($this->task_id);
+        if ($task_data_not_loaded) $this->load($this->task_id);
         $user_id = ($user_id) ? $user_id : $this->_AppUI->user_id;
         // Let's see if this user has admin privileges
         if (canView('admin')) {
             return true;
         }
+        // If the user is the task owner, they can always see it.
+        if ($this->task_owner == $user_id) { return true; }
+
+        $access = false;
 
         switch ($this->task_access) {
             case self::ACCESS_PUBLIC:
-                $retval = true;
+                $access = true;
                 break;
             case self::ACCESS_PROTECTED:
                 $q = $this->_getQuery();
@@ -1503,7 +1482,7 @@ class CTask extends w2p_Core_BaseObject
                     $company_match = $company_match && ((!(isset($last_company))) || $last_company == $current_company);
                     $last_company = $current_company;
                 }
-
+                // This drops through on purpose.
             case self::ACCESS_PARTICIPANT:
                 $company_match = ((isset($company_match)) ? $company_match : true);
                 $q = $this->_getQuery();
@@ -1512,17 +1491,14 @@ class CTask extends w2p_Core_BaseObject
                 $q->addWhere('user_id=' . (int) $user_id . ' AND task_id=' . (int) $this->task_id);
                 $count = $q->loadResult();
                 $q->clear();
-                $retval = (($company_match && $count > 0) || $this->task_owner == $user_id);
-                break;
-            case self::ACCESS_PRIVATE:
-                $retval = ($this->task_owner == $user_id);
+                $access = (($company_match && $count > 0) );
                 break;
             default:
-                $retval = false;
+                $access = false;
                 break;
         }
 
-        return $retval;
+        return $access;
     }
 
     /**
@@ -2370,7 +2346,7 @@ class CTask extends w2p_Core_BaseObject
         $body = $emailManager->getTaskRemind($this, $msg, $project_name, $contacts);
 
         $mail = new w2p_Utilities_Mail();
-        $mail->Subject($subject, $this->_locale_char_set);
+        $mail->Subject($subject);
 
         foreach ($contacts as $contact) {
             $user_id = $contact['user_id'];
@@ -2383,10 +2359,8 @@ class CTask extends w2p_Core_BaseObject
             $body = str_replace('END-TIME', $expires->convertTZ($tz)->format($df), $body);
             $mail->Body($body, $this->_locale_char_set);
 
-            if ($mail->ValidEmail($contact['contact_email'])) {
-                $mail->To($contact['contact_email'], true);
-                $mail->Send();
-            }
+            $mail->To($contact['contact_email'], true);
+            $mail->Send();
         }
         return true;
     }

@@ -1,12 +1,4 @@
 <?php
-##
-## Global General Purpose Functions
-##
-if (!defined('W2P_BASE_DIR')) {
-    die('You should not access this file directly.');
-}
-
-define('SECONDS_PER_DAY', 86400);
 
 require_once W2P_BASE_DIR . '/includes/backcompat_functions.php';
 require_once W2P_BASE_DIR . '/includes/deprecated_functions.php';
@@ -170,9 +162,10 @@ function arrayMerge($a1, $a2)
 
 /**
  * Retrieves a configuration setting.
- * @param $key string The name of a configuration setting
- * @param $default string The default value to return if the key not found.
- * @return The value of the setting, or the default value if not found.
+ *
+ * @param $key          string The name of a configuration setting
+ * @param null $default string The default value to return if the key not found.
+ * @return null         The value of the setting, or the default value if not found.
  */
 function w2PgetConfig($key, $default = null)
 {
@@ -315,31 +308,28 @@ function w2p_textarea($content)
     return $result;
 }
 
-function notifyNewExternalUser($emailAddress, $username, $logname,
-        $logpwd, $emailUtility = null) {
-
+function notifyNewExternalUser($emailAddress, $username, $logname, $logpwd, $emailUtility = null)
+{
     global $AppUI;
+    $emailManager = new w2p_Output_EmailManager($AppUI);
+    $body = $emailManager->notifyNewExternalUser($logname, $logpwd);
+
     $mail = (!is_null($emailUtility)) ? $emailUtility : new w2p_Utilities_Mail();
-    if ($mail->ValidEmail($emailAddress)) {
-        $mail->To($emailAddress);
-        $emailManager = new w2p_Output_EmailManager($AppUI);
-        $body = $emailManager->notifyNewExternalUser($logname, $logpwd);
-        $mail->Subject('New Account Created');
-        $mail->Body($body);
-        $mail->Send();
-    }
+    $mail->To($emailAddress);
+    $mail->Subject('New Account Created');
+    $mail->Body($body);
+    return $mail->Send();
 }
 
 function notifyNewUser($emailAddress, $username, $emailUtility = null)
 {
     global $AppUI;
+    $emailManager = new w2p_Output_EmailManager($AppUI);
+    $body = $emailManager->getNotifyNewUser($username);
+
     $mail = (!is_null($emailUtility)) ? $emailUtility : new w2p_Utilities_Mail();
-    if ($mail->ValidEmail($emailAddress)) {
-        $mail->To($emailAddress);
-        $emailManager = new w2p_Output_EmailManager($AppUI);
-        $body = $emailManager->getNotifyNewUser($username);
-        $mail->Subject('New Account Created');
-        $mail->Body($body);
-        $mail->Send();
-    }
+    $mail->To($emailAddress);
+    $mail->Subject('New Account Created');
+    $mail->Body($body);
+    return $mail->Send();
 }

@@ -21,7 +21,7 @@ $modules = __extract_from_modules_index($hidden_modules);
 $loader = new w2p_FileSystem_Loader();
 $modFiles = $loader->readDirs('modules');
 
-$titleBlock = new w2p_Theme_TitleBlock('Modules', 'power-management.png', $m, "$m.$a");
+$titleBlock = new w2p_Theme_TitleBlock('Modules', 'power-management.png', $m);
 $titleBlock->addCrumb('?m=system', 'System Admin');
 $titleBlock->show();
 
@@ -143,11 +143,10 @@ $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
         }
     }
     ?>
-<!-- TODO:
     <tr>
         <td colspan="10" style="text-align: center;">
             <?php echo $AppUI->_('Select a module to upload'); ?>:
-            <form action="./index.php?m=system" method="post" enctype="multipart/form-data">
+            <form action="./index.php?m=system&u=modules" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="dosql" value="do_module_upload" />
                 <input type="file" name="module_upload" size="50" maxlength="1000000" class="text" />
                 <?php if (is_writable(W2P_BASE_DIR.'/files')) { ?>
@@ -160,5 +159,4 @@ $htmlHelper = new w2p_Output_HTMLHelper($AppUI);
             </form>
         </td>
     </tr>
--->
 </table>
