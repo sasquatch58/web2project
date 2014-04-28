@@ -1,6 +1,6 @@
 <?php
 
-use Web2project\Output\EmailTemplate;
+use Web2project\Output\Email\Template as EmailTemplate;
 
 /**
  * Class for testing Web2project\Output\EmailTemplate functionality
@@ -23,6 +23,7 @@ include_once 'unit_tests/CommonSetup.php';
 
 class Web2project_Output_EmailTemplateTest extends CommonSetup
 {
+    protected $template = null;
     protected function setUp()
     {
         parent::setUp();

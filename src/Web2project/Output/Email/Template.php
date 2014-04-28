@@ -1,11 +1,11 @@
 <?php
-namespace Web2project\Output;
+namespace Web2project\Output\Email;
 
 /**
- * Class EmailTemplate
- * @package Web2project\Output
+ * Class Template
+ * @package Web2project\Output\Email
  */
-class EmailTemplate
+class Template
 {
     /**
      * @param $message
