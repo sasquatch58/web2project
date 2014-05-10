@@ -35,27 +35,15 @@ class w2p_Extensions_Permissions extends gacl_api
         $opts['db_name'] = w2PgetConfig('dbname');
         $opts['db_table_prefix'] = w2PgetConfig('dbprefix') . $this->_db_acl_prefix;
         $opts['db'] = $db;
-        // We can add an ADODB instance instead of the database
-        // connection details.  This might be worth looking at in
-        // the future.
+
         if (w2PgetConfig('debug', 0) > 10) {
             $this->_debug = true;
         }
         parent::gacl_api($opts);
-        $this->_query = new w2p_Database_Query();
     }
 
-    /**
-     * Since Dependency injection isn't feasible due to the sheer number of
-     *   calls to the above constructor, this is a way to hijack the current
-     *   $this->_query and manipulate it however we want.
-     *
-     *   @param Object A database connection (real or mocked)
-     */
-    protected function _overrideDatabase($override)
-    {
-        $this->_query = $override;
-    }
+    /** @deprecated since 3.2 */
+    protected function _overrideDatabase($override) { }
 
     public function checkLogin($login)
     {
@@ -1296,7 +1284,7 @@ class w2p_Extensions_Permissions extends gacl_api
         } elseif ($module == 'users') {
             $mod_class = array('mod_main_class' => 'CUser', 'permissions_item_table' => 'users', 'permissions_item_field' => 'user_id', 'permissions_item_label' => 'user_username', 'mod_directory' => 'admin');
         } elseif ($module == 'events') {
-            $mod_class = array('mod_main_class' => 'CCalendar', 'permissions_item_table' => 'events', 'permissions_item_field' => 'event_id', 'permissions_item_label' => 'event_title', 'mod_directory' => 'calendar');
+            $mod_class = array('mod_main_class' => 'CEvent', 'permissions_item_table' => 'events', 'permissions_item_field' => 'event_id', 'permissions_item_label' => 'event_title', 'mod_directory' => 'calendar');
         }
         if ($op == 'view') {
             //Because view is nuclear we can't just check the permission against the results table, so we need to check the allowed records on each class, so it handles the

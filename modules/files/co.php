@@ -25,7 +25,7 @@ $obj = new CFile();
 if ($file_id > 0 && !$obj->load($file_id)) {
 	$AppUI->setMsg('File');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
-	$AppUI->redirect();
+    $AppUI->redirect('m=' . $m);
 }
 
 // setup the title block
@@ -71,7 +71,7 @@ function popFile( params ) {
     <input type="hidden" name="file_checkout" value="<?php echo $AppUI->user_id; ?>" />
     <input type="hidden" name="file_version_id" value="<?php echo $obj->file_version_id; ?>" />
         
-    <table width="100%" border="0" cellpadding="3" cellspacing="3" class="std view">
+    <table class="std view">
         <tr>
             <td width="100%" valign="top" align="center">
                 <table cellspacing="1" cellpadding="2" width="60%">

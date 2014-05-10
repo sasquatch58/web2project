@@ -255,7 +255,7 @@ if (!$min_view) {
 	<input type="hidden" name="caller" value="<?php echo $a; ?>" />
     <input type="hidden" name="datePicker" value="project" />
 
-    <table border="0" cellpadding="4" cellspacing="0" class="std well" width="100%">
+    <table class="std well">
         <tr>
             <td align="left" valign="top" width="20">
                 <?php if ($display_option != "all") { ?>
@@ -322,12 +322,12 @@ if (!$min_view) {
         </tr>
         <tr align="left">
             <td colspan="11">
-                <table border="0" id="ganttoptions" style="display:none" width="100%" align="center"><tr><td width="100%">
+                <table border="0" id="ganttoptions" style="display:none" width="100%" ><tr><td width="100%">
                     <tr>
                         <td>
-                            
+
                             <input type="hidden" name="show_form" value="1" />
-                            <table  border="0" cellpadding="2" cellspacing="0" width="100%" align="center">
+                            <table  border="0" cellpadding="2" cellspacing="0" width="100%" >
                                 <tr>
                                     <td>&nbsp;To Do Options:&nbsp;</td>
                                     <td  valign="bottom" nowrap="nowrap">
@@ -367,7 +367,7 @@ if (!$min_view) {
 </form>
 </div> <!-- end of div used to show/hide formatting options -->
 
-<table cellspacing="0" cellpadding="2" border="1" align="center" bgcolor="white" width="100%">
+<table cellspacing="0" cellpadding="2" border="1"  bgcolor="white" width="100%">
 	<tr><th colspan="9" > Gantt chart key: </th></tr>
 	<?php if ($showMilestonesOnly != 1) { ?>
 	<tr>
@@ -395,7 +395,7 @@ if (!$min_view) {
 	<?php } ?>
 </table>
 
-<table cellspacing="0" cellpadding="0" border="1" align="center" class="std" width="100%">
+<table class="std">
     <tr>
         <td valign="top" align="center">
             <?php

@@ -1,3 +1,8 @@
+<?php
+
+$htmlHelper = new w2p_Output_HTMLHelper($AppUI);
+
+?>
 <table class="std view tasks">
 <tr>
     <th colspan="2"><?php echo $obj->task_name; ?></th>

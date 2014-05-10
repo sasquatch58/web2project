@@ -5,6 +5,8 @@ if (!defined('W2P_BASE_DIR')) {
 
 $company_id = (int) w2PgetParam($_GET, 'company_id', 0);
 
+$tab = $AppUI->processIntState('CompVwTab', $_GET, 'tab', 0);
+
 $company = new CCompany();
 
 if (!$company->load($company_id)) {
@@ -14,8 +16,6 @@ if (!$company->load($company_id)) {
 $canEdit   = $company->canEdit();
 $canDelete = $company->canDelete();
 $deletable = $canDelete;            //TODO: this should be removed once the $deletable variable is removed
-
-$tab = $AppUI->processIntState('CompVwTab', $_GET, 'tab', 0);
 
 $contact = new CContact();
 $canCreateContacts = $contact->canCreate();
@@ -40,33 +40,21 @@ if ($canEdit) {
 	}
 }
 $titleBlock->show();
-$htmlHelper = new w2p_Output_HTMLHelper($AppUI);
-$htmlHelper->stageRowData(get_object_vars($company));
-// security improvement:
-// some javascript functions may not appear on client side in case of user not having write permissions
-// else users would be able to arbitrarily run 'bad' functions
-if ($canDelete) {
-?>
+
+if ($canDelete) { ?>
   <script language="javascript" type="text/javascript">
     function delIt() {
     	if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Company') . '?'; ?>' )) {
-    		document.frmDelete.submit();
+            $.post("?m=companies",
+                {dosql: "do_company_aed", del: 1, company_id: <?php echo $company_id; ?>},
+                window.location = "?m=companies"
+            );
     	}
     }
   </script>
+<?php }
 
-	<form name="frmDelete" action="./index.php?m=companies" method="post" accept-charset="utf-8">
-		<input type="hidden" name="dosql" value="do_company_aed" />
-		<input type="hidden" name="del" value="1" />
-		<input type="hidden" name="company_id" value="<?php echo $company_id; ?>" />
-	</form>
-<?php } ?>
-
-<?php
-// load the list of project statii and company types
-$pstatus = w2PgetSysVal('ProjectStatus');
 $types = w2PgetSysVal('CompanyType');
-$countries = w2PgetSysVal('GlobalCountries');
 
 include $AppUI->getTheme()->resolveTemplate('companies/view');
 
@@ -75,9 +63,4 @@ $moddir = W2P_BASE_DIR . '/modules/companies/';
 $tabBox = new CTabBox('?m=companies&a=view&company_id=' . $company_id, '', $tab);
 $tabBox->add($moddir . 'vw_projects', 'Active Projects');
 $tabBox->add($moddir . 'vw_projects', 'Archived Projects');
-if ($AppUI->isActiveModule('departments') && canView('departments')) {
-    $tabBox->add($moddir . 'vw_depts', 'Departments');
-}
-$tabBox->add($moddir . 'vw_users', 'Users');
-$tabBox->add($moddir . 'vw_contacts', 'Contacts');
 $tabBox->show();

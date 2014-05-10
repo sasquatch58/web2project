@@ -14,14 +14,8 @@ if ($project_id != 0) {
 }
 if ($err = db_error()) {
 	$AppUI->setMsg($err, UI_MSG_ERROR);
-	$AppUI->redirect();
+    $AppUI->redirect('m=' . $m);
 }
-
-$output = new w2p_Output_PDFRenderer('A4', 'landscape');
-$output->addTitle($AppUI->_('Project Completed Task Report'));
-$output->addDate($df);
-$output->addSubtitle(w2PgetConfig('company_name'));
-$output->addSubtitle($pname);
 
 $date = new w2p_Utilities_Date();
 $last_week = new w2p_Utilities_Date($date);
@@ -74,7 +68,7 @@ $tasks = $q->loadHashList('task_id');
 
 if ($err = db_error()) {
 	$AppUI->setMsg($err, UI_MSG_ERROR);
-	$AppUI->redirect();
+    $AppUI->redirect('m=' . $m);
 }
 // Now grab the resources allocated to the tasks.
 $task_list = array_keys($tasks);
@@ -86,19 +80,14 @@ foreach ($task_list as $tid) {
 
 if (count($tasks)) {
 	$q->clear();
-	$q->addQuery('a.task_id, a.perc_assignment, b.*, c.*');
+	$q->addQuery('a.*, contact_display_name');
 	$q->addTable('user_tasks', 'a');
 	$q->addJoin('users', 'b', 'a.user_id = b.user_id', 'inner');
 	$q->addJoin('contacts', 'c', 'b.user_contact = c.contact_id', 'inner');
 	$q->addWhere('a.task_id IN (' . implode(',', $task_list) . ')');
-	$res = $q->exec();
-	if (!$res) {
-		$AppUI->setMsg(db_error(), UI_MSG_ERROR);
-		$q->clear();
-		$AppUI->redirect();
-	}
-	while ($row = db_fetch_assoc($res)) {
-		$assigned_users[$row['task_id']][$row['user_id']] = $row[contact_first_name] . ' ' . $row[contact_last_name] . ' [' . $row[perc_assignment] . '%]';
+	$rows = $q->loadHashList('task_id');
+    foreach($rows as $row) {
+		$assigned_users[$row['task_id']][$row['user_id']] = $row['contact_display_name'] . ' [' . $row['perc_assignment'] . '%]';
 	}
 	$q->clear();
 }
@@ -113,13 +102,8 @@ if ($hasResources && count($tasks)) {
 	$q->addTable('resource_tasks', 'a');
 	$q->addJoin('resources', 'b', 'a.resource_id = b.resource_id', 'inner');
 	$q->addWhere('a.task_id IN (' . implode(',', $task_list) . ')');
-	$res = $q->exec();
-	if (!$res) {
-		$AppUI->setMsg(db_error(), UI_MSG_ERROR);
-		$q->clear();
-		$AppUI->redirect();
-	}
-	while ($row = db_fetch_assoc($res)) {
+    $rows = $q->loadHashList('resource_id');
+    foreach($rows as $row) {
 		$resources[$row['task_id']][$row['resource_id']] = $row['resource_name'] . ' [' . $row['percent_allocated'] . '%]';
 	}
 	$q->clear();
@@ -137,5 +121,11 @@ foreach ($tasks as $task_id => $detail) {
 	$row[] = $end_date->format($df);
 }
 
+
+$output = new w2p_Output_PDFRenderer('A4', 'landscape');
+$output->addTitle($AppUI->_('Project Completed Task Report'));
+$output->addDate($df);
+$output->addSubtitle(w2PgetConfig('company_name'));
+$output->addSubtitle($pname);
 $output->addTable($title, $columns, $pdfdata, $options);
 $output->getStream();

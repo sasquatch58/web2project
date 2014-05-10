@@ -14,12 +14,6 @@ if (!$event->load($event_id)) {
 $canEdit   = $event->canEdit();
 $canDelete = $event->canDelete();
 
-
-
-
-// load the event types
-$types = w2PgetSysVal('EventType');
-
 // load the event recurs types
 $recurs = array('Never', 'Hourly', 'Daily', 'Weekly', 'Bi-Weekly', 'Every Month', 'Quarterly', 'Every 6 months', 'Every Year');
 
@@ -51,29 +45,20 @@ if ($canEdit) {
 	}
 }
 $titleBlock->show();
-$htmlHelper = new w2p_Output_HTMLHelper($AppUI);
-$htmlHelper->df .= ' ' . $tf;
-?>
-<script language="javascript" type="text/javascript">
-<?php
-// security improvement:
-// some javascript functions may not appear on client side in case of user not having write permissions
-// else users would be able to arbitrarily run 'bad' functions
-if ($canDelete) {
-?>
-function delIt() {
-	if (confirm( "<?php echo $AppUI->_('eventDelete', UI_OUTPUT_JS); ?>" )) {
-		document.frmDelete.submit();
-	}
-}
-<?php } ?>
-</script>
 
-<form name="frmDelete" action="./index.php?m=events" method="post" accept-charset="utf-8">
-	<input type="hidden" name="dosql" value="do_event_aed" />
-	<input type="hidden" name="del" value="1" />
-	<input type="hidden" name="event_id" value="<?php echo $event_id; ?>" />
-</form>
+if ($canDelete) { ?>
+    <script language="javascript" type="text/javascript">
+        function delIt() {
+            if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Event') . '?'; ?>' )) {
+                $.post("?m=events",
+                    {dosql: "do_event_aed", del: 1, event_id: <?php echo $event_id; ?>},
+                    window.location = "?m=events"
+                );
+            }
+        }
+    </script>
+<?php }
 
-<?php
+$types = w2PgetSysVal('EventType');
+
 include $AppUI->getTheme()->resolveTemplate('events/view');

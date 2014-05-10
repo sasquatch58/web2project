@@ -54,7 +54,7 @@ if ($field_id) {
 	} else {
 		//No such field exists with this ID
 		$AppUI->setMsg('Couldnt load the Custom Field, It might have been deleted somehow.', UI_MSG_ERROR);
-		$AppUI->redirect();
+        $AppUI->redirect('m=system&u=customfields');
 	}
 }
 
@@ -117,7 +117,7 @@ function deleteItem(id) {
     <input type="hidden" name="field_id" value="<?php echo $field_id; ?>" />
     <input type="hidden" name="module" value="<?php echo $module_id ?>" />
     <input type="hidden" name="dosql" id="dosql" value="do_customfield_aed" />
-    <table width="100%" border="0" cellpadding="3" cellspacing="3" class="std addedit well">
+    <table class="std addedit well">
         <tr>
             <th colspan="2"><?php echo $ttl; ?></th>
         </tr>

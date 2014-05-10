@@ -197,7 +197,7 @@ function w2PgetParam(&$arr, $name, $def = null)
             $result  = $_result;
         } else {
             $_result = strip_tags($arr[$key]);
-            $result  = preg_replace("/<>'\"\[\]{}:;/", "", $_result);
+            $result  = preg_replace("/<>\`'\"\[\]{}():;/", "", $_result);
         }
     } else {
         $result = $def;
@@ -332,4 +332,24 @@ function notifyNewUser($emailAddress, $username, $emailUtility = null)
     $mail->Subject('New Account Created');
     $mail->Body($body);
     return $mail->Send();
+}
+
+/**
+ * Authenticator Factory
+ *
+ * @param $auth_mode
+ * @return w2p_Authenticators_Base
+ */
+function &getAuth($auth_mode) {
+    switch ($auth_mode) {
+        case 'ldap':
+            $auth = new w2p_Authenticators_LDAP();
+            break;
+        case 'pn':
+            $auth = new w2p_Authenticators_PostNuke();
+            break;
+        default:
+            $auth = new w2p_Authenticators_SQL();
+    }
+    return $auth;
 }

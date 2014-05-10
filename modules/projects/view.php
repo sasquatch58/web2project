@@ -24,16 +24,6 @@ if (in_array($project_id, $denied)) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
 
-// get ProjectPriority from sysvals
-$projectPriority = w2PgetSysVal('ProjectPriority');
-$projectPriorityColor = w2PgetSysVal('ProjectPriorityColor');
-$billingCategory = w2PgetSysVal('BudgetCategory');
-$pstatus = w2PgetSysVal('ProjectStatus');
-$ptype = w2PgetSysVal('ProjectType');
-
-// get the prefered date format
-$df = $AppUI->getPref('SHDATEFORMAT');
-
 $criticalTasks = ($project_id > 0) ? $project->getCriticalTasks($project_id) : null;
 
 // create Date objects from the datetime fields
@@ -62,7 +52,19 @@ if (canAdd('tasks')) {
 }
 $titleBlock->show();
 
-$htmlHelper = new w2p_Output_HTMLHelper($AppUI);
+if ($canDelete) { ?>
+    <script language="javascript" type="text/javascript">
+        function delIt() {
+            if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Project') . '?'; ?>' )) {
+                $.post("?m=projects",
+                    {dosql: "do_project_aed", del: 1, project_id: <?php echo $project_id; ?>},
+                    window.location = "?m=projects"
+                );
+            }
+        }
+    </script>
+<?php }
+
 ?>
 <script language="javascript" type="text/javascript">
 function expand_multiproject(id, table_name) {
@@ -81,27 +83,14 @@ function expand_multiproject(id, table_name) {
           }
       }
 }
-<?php
-// security improvement:
-// some javascript functions may not appear on client side in case of user not having write permissions
-// else users would be able to arbitrarily run 'bad' functions
-if ($canEdit) {
-?>
-function delIt() {
-	if (confirm( '<?php echo $AppUI->_('doDelete', UI_OUTPUT_JS) . ' ' . $AppUI->_('Project', UI_OUTPUT_JS) . '?'; ?>' )) {
-		document.frmDelete.submit();
-	}
-}
-<?php } ?>
 </script>
-
-<form name="frmDelete" action="./index.php?m=projects" method="post" accept-charset="utf-8">
-	<input type="hidden" name="dosql" value="do_project_aed" />
-	<input type="hidden" name="del" value="1" />
-	<input type="hidden" name="project_id" value="<?php echo $project_id; ?>" />
-</form>
-
 <?php
+
+$projectPriority = w2PgetSysVal('ProjectPriority');
+$projectPriorityColor = w2PgetSysVal('ProjectPriorityColor');
+$billingCategory = w2PgetSysVal('BudgetCategory');
+$pstatus = w2PgetSysVal('ProjectStatus');
+$ptype = w2PgetSysVal('ProjectType');
 
 include $AppUI->getTheme()->resolveTemplate('projects/view');
 
@@ -129,11 +118,7 @@ if ($canViewTask && $AppUI->isActiveModule('tasks')) {
 		$tabBox->add(W2P_BASE_DIR . '/modules/projects/vw_logs', 'Task Logs');
 	}
 }
-if ( $AppUI->isActiveModule('forums') ) {
-    if (canView('forums')) {
-        $tabBox->add(W2P_BASE_DIR . '/modules/projects/vw_forums', 'Forums');
-    }
-}
+
 $f = 'all';
 $min_view = true;
 

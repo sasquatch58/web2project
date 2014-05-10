@@ -25,29 +25,21 @@ if ($canEdit) {
 }
 $titleBlock->show();
 
-$htmlHelper = new w2p_Output_HTMLHelper($AppUI);
+if ($canDelete) { ?>
+    <script language="javascript" type="text/javascript">
+        function delIt() {
+            if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Resource') . '?'; ?>' )) {
+                $.post("?m=resources",
+                    {dosql: "do_resource_aed", del: 1, resource_id: <?php echo $resource_id; ?>},
+                    window.location = "?m=resources"
+                );
+            }
+        }
+    </script>
+<?php }
+
 $types = w2PgetSysVal('ResourceTypes');
 $types[0] = 'Not Specified';
 $customLookups = array('resource_type' => $types);
-// security improvement:
-// some javascript functions may not appear on client side in case of user not having write permissions
-// else users would be able to arbitrarily run 'bad' functions
-if ($canDelete) {
-?>
-  <script language="javascript" type="text/javascript">
-    function delIt() {
-        if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Resource') . '?'; ?>' )) {
-            document.frmDelete.submit();
-        }
-    }
-  </script>
 
-    <form name="frmDelete" action="./index.php?m=resources" method="post" accept-charset="utf-8">
-        <input type="hidden" name="dosql" value="do_resource_aed" />
-        <input type="hidden" name="del" value="1" />
-        <input type="hidden" name="resource_id" value="<?php echo $resource_id; ?>" />
-    </form>
-<?php } ?>
-
-<?php
 include $AppUI->getTheme()->resolveTemplate('resources/view');

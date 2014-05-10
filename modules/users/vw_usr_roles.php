@@ -49,33 +49,33 @@ function clearIt(){
 
 </script>
 
-<table width="100%" border="0" cellpadding="2" cellspacing="0">
-<tr><td width="50%" valign="top">
-<table class="tbl list">
-<tr>
-	<th width="100%"><?php echo $AppUI->_('Role'); ?></th>
-	<th>&nbsp;</th>
-</tr>
+<table width="100%" border="0">
+    <tr>
+        <td width="50%" valign="top">
+            <table class="tbl list">
+                <tr>
+                    <th width="100%"><?php echo $AppUI->_('Role'); ?></th>
+                    <th>&nbsp;</th>
+                </tr>
+                <?php
+                foreach ($user_roles as $row) {
+                    $buf = '';
 
-<?php
-foreach ($user_roles as $row) {
-	$buf = '';
+                    $style = '';
+                    $buf .= "<td>" . $row['name'] . "</td>";
 
-	$style = '';
-	$buf .= "<td>" . $row['name'] . "</td>";
+                    $buf .= '<td nowrap>';
+                    if ($canEdit) {
+                        $buf .= "<a href=\"javascript:delIt({$row['id']});\" title=\"" . $AppUI->_('delete') . "\">" . w2PshowImage('icons/stock_delete-16.png', 16, 16, '') . '</a>';
+                    }
+                    $buf .= '</td>';
 
-	$buf .= '<td nowrap>';
-	if ($canEdit) {
-		$buf .= "<a href=\"javascript:delIt({$row['id']});\" title=\"" . $AppUI->_('delete') . "\">" . w2PshowImage('icons/stock_delete-16.png', 16, 16, '') . '</a>';
-	}
-	$buf .= '</td>';
-
-	echo "<tr>$buf</tr>";
-}
-?>
-</table>
-
-</td><td width="50%" valign="top">
+                    echo "<tr>$buf</tr>";
+                }
+                ?>
+            </table>
+        </td>
+        <td width="50%" valign="top">
 
 <?php if ($canEdit) { ?>
 
@@ -85,7 +85,7 @@ foreach ($user_roles as $row) {
 	<input type="hidden" name="user_id" value="<?php echo $user_id; ?>" />
 	<input type="hidden" name="user_name" value="<?php echo $user_name; ?>" />
 	<input type="hidden" name="role_id" value="" />
-	<table cellspacing="1" cellpadding="2" border="0" class="std" width="100%">
+	<table class="std">
 		<tr>
 			<th colspan='2'><?php echo $AppUI->_('Add Role'); ?></th>
 		</tr>

@@ -1,12 +1,12 @@
 <?php
 if (!defined('W2P_BASE_DIR')) {
-	die('You should not access this file directly.');
+    die('You should not access this file directly.');
 }
 // @todo    convert to template
 
-global $AppUI, $project_id;
+global $AppUI, $project;
 
-$items = CProject::getForums($AppUI, $project_id);
+$items = $project->getForumList();
 
 $module = new w2p_System_Module();
 $fields = $module->loadSettings('forums', 'projects_view');

@@ -70,7 +70,7 @@ $df = $AppUI->getPref('SHDATEFORMAT');
 	<input type="hidden" name="report_type" value="<?php echo $report_type; ?>" />
     <input type="hidden" name="datePicker" value="log" />
 
-    <table cellspacing="0" cellpadding="4" border="0" width="100%" class="std">
+    <table class="std">
         <tr>
             <td align="right" nowrap="nowrap"><?php echo $AppUI->_('Default Actions'); ?>:</td>
             <td nowrap="nowrap">
@@ -145,7 +145,7 @@ if ($do_report) {
     echo $AppUI->getTheme()->styleRenderBoxBottom();
 	echo '<br />';
     echo $AppUI->getTheme()->styleRenderBoxTop();
-	echo '<table cellspacing="0" cellpadding="4" border="0" width="100%" class="std">
+	echo '<table class="std">
 <tr>
 	<td>';
 
@@ -181,7 +181,7 @@ if ($do_report) {
 		$str .= '<td>' . nl2br($task['task_description']) . '</td>';
 
         $users = array();
-        $assignees = $obj->getAssignedUsers($task['task_id']);
+        $assignees = $obj->assignees($task['task_id']);
         foreach($assignees as $assignee) {
             $users[] = $assignee['contact_name'];
         }
