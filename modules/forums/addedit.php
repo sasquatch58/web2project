@@ -3,14 +3,14 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 // @todo    convert to template
-$forum_id = (int) w2PgetParam($_GET, 'forum_id', 0);
+$object_id = (int) w2PgetParam($_GET, 'forum_id', 0);
 
 
 
-$forum = new CForum();
-$forum->forum_id = $forum_id;
+$object = new CForum();
+$object->setId($object_id);
 
-$obj = $forum;
+$obj = $object;
 $canAddEdit = $obj->canAddEdit();
 $canAuthor = $obj->canCreate();
 $canEdit = $obj->canEdit();
@@ -20,21 +20,21 @@ if (!$canAddEdit) {
 
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $forum = $obj;
-    $forum_id = $forum->forum_id;
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-    $forum->load($forum_id);
+    $object->load($object_id);
 }
-if (!$forum && $forum_id > 0) {
+if (!$object && $object_id > 0) {
     $AppUI->setMsg('Forum');
     $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
 }
 
-$status = isset($forum->forum_status) ? $forum->forum_status : -1;
+$status = isset($object->forum_status) ? $object->forum_status : -1;
 
 $prj = new CProject();
-if ($forum_id) {
+if ($object_id) {
     $projects = $prj->getAllowedProjects($AppUI->user_id, false);
 } else {
     $projects = $prj->getAllowedProjects($AppUI->user_id, true);
@@ -50,10 +50,10 @@ $users = $perms->getPermittedUsers('forums');
 
 
 // setup the title block
-$ttl = $forum_id > 0 ? 'Edit Forum' : 'Add Forum';
+$ttl = $object_id > 0 ? 'Edit Forum' : 'Add Forum';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
-$titleBlock->addViewLink('forum', $forum_id, 'viewer');
+$titleBlock->addViewLink('forum', $object_id, 'viewer');
 $titleBlock->show();
 ?>
 <script language="javascript" type="text/javascript">

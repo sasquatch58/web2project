@@ -4,13 +4,14 @@ if (!defined('W2P_BASE_DIR')) {
 }
 // @todo    convert to template
 $folder = (int) w2PgetParam($_GET, 'folder', 0);
-$file_id = (int) w2PgetParam($_GET, 'file_id', 0);
+$object_id = (int) w2PgetParam($_GET, 'file_id', 0);
 $ci = w2PgetParam($_GET, 'ci', 0) == 1 ? true : false;
 $preserve = $w2Pconfig['files_ci_preserve_attr'];
-$file = new CFile();
-$file->file_id = $file_id;
 
-$obj = $file;
+$object = new CFile();
+$object->setId($object_id);
+
+$obj = $object;
 $canAddEdit = $obj->canAddEdit();
 $canAuthor = $obj->canCreate();
 $canEdit = $obj->canEdit();
@@ -20,12 +21,12 @@ if (!$canAddEdit) {
 
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $file = $obj;
-    $file_id = $file->file_id;
+    $object = $obj;
+    $object_id = $file->getId();
 } else {
-    $obj = $file->load($file_id);
+    $obj = $object->load($object_id);
 }
-if (!$file && $file_id > 0) {
+if (!$object && $object_id > 0) {
 	$AppUI->setMsg('File');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
@@ -39,63 +40,62 @@ $canAdmin = canEdit('system');
 $referrerArray = parse_url($_SERVER['HTTP_REFERER']);
 $referrer = $referrerArray['query'];
 
-$file_task = (int) w2PgetParam($_GET, 'file_task', $file->file_task);
+$file_task = (int) w2PgetParam($_GET, 'file_task', $object->file_task);
 $file_parent = (int) w2PgetParam($_GET, 'file_parent', 0);
 $file_project = (int) w2PgetParam($_GET, 'project_id', 0);
-$file_helpdesk_item = (int) w2PgetParam($_GET, 'file_helpdesk_item', 0);
 
-if ($file_id > 0) {
+if ($object_id > 0) {
 	// Check to see if the task or the project is also allowed.
     $perms = &$AppUI->acl();
-	if ($file->file_task) {
-		if (!$perms->checkModuleItem('tasks', 'view', $file->file_task)) {
+	if ($object->file_task) {
+		if (!$perms->checkModuleItem('tasks', 'view', $object->file_task)) {
 			$AppUI->redirect(ACCESS_DENIED);
 		}
 	}
-	if ($file->file_project) {
-		if (!$perms->checkModuleItem('projects', 'view', $file->file_project)) {
+	if ($object->file_project) {
+		if (!$perms->checkModuleItem('projects', 'view', $object->file_project)) {
 			$AppUI->redirect(ACCESS_DENIED);
 		}
 	}
 }
 
-if ($file->file_checkout != $AppUI->user_id) {
+if ($object->file_checkout != $AppUI->user_id) {
 	$ci = false;
 }
 
 if (!$canAdmin)
-	$canAdmin = $file->canAdmin();
+	$canAdmin = $object->canAdmin();
 
-if ($file->file_checkout == 'final' && !$canAdmin) {
+if ($object->file_checkout == 'final' && !$canAdmin) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
 // setup the title block
-$ttl = $file_id ? 'Edit File' : 'Add File';
+$ttl = $object_id ? 'Edit File' : 'Add File';
 $ttl = $ci ? 'Checking in' : $ttl;
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
-$canDelete = $file->canDelete();
+$canDelete = $object->canDelete();
 
-if ($canDelete && $file_id > 0 && !$ci) {
+if ($canDelete && $object_id > 0 && !$ci) {
 	$titleBlock->addCrumbDelete('delete file', $canDelete, $msg);
 }
 $titleBlock->show();
 
 //Clear the file id if checking out so a new version is created.
 if ($ci) {
-	$file_id = 0;
+	$object_id = 0;
 }
 
-if ($file->file_project) {
-	$file_project = $file->file_project;
+if ($object->file_project) {
+	$file_project = $object->file_project;
 }
 
 $task = new CTask();
 $task->load($file_task);
 $task_name = $task->task_name;
 
-if (isset($file->file_helpdesk_item)) {
-	$file_helpdesk_item = $file->file_helpdesk_item;
+if (isset($object->file_helpdesk_item)) {
+	$file_helpdesk_item = $object->file_helpdesk_item;
 }
 $folders = getFolderSelectList();
 $htmlHelper = new w2p_Output_HTMLHelper($AppUI);

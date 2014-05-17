@@ -4,13 +4,13 @@ if (!defined('W2P_BASE_DIR')) {
 }
 // @todo    convert to template
 $file_folder_parent = intval(w2PgetParam($_GET, 'file_folder_parent', 0));
-$folder_id = intval(w2PgetParam($_GET, 'folder', 0));
+$object_id = intval(w2PgetParam($_GET, 'folder', 0));
 
 
-$folder = new CFile_Folder();
-$folder->file_folder_id = $folder_id;
+$object = new CFile_Folder();
+$object->setId($object_id);
 
-$obj = $folder;
+$obj = $object;
 $canAddEdit = $obj->canAddEdit();
 $canAuthor = $obj->canCreate();
 $canEdit = $obj->canEdit();
@@ -20,12 +20,12 @@ if (!$canAddEdit) {
 
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $folder = $obj;
-    $folder_id = $folder->file_folder_id;
+    $object = $obj;
+    $object_id = $object->file_folder_id;
 } else {
-    $obj = $folder->load($folder_id);
+    $obj = $object->load($object_id);
 }
-if (!$folder && $folder_id > 0) {
+if (!$object && $object_id > 0) {
 	$AppUI->setMsg('File Folder');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
 	$AppUI->redirect('m=' . $m);
@@ -34,11 +34,11 @@ if (!$folder && $folder_id > 0) {
 $folders = getFolderSelectList();
 
 // setup the title block
-$ttl = $folder_id ? 'Edit File Folder' : 'Add File Folder';
+$ttl = $object_id ? 'Edit File Folder' : 'Add File Folder';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
 
-$canDelete = $folder->canDelete();
+$canDelete = $object->canDelete();
 if ($canDelete) {
 	$titleBlock->addCrumbDelete('delete file folder', $canDelete, $msg);
 }
@@ -67,7 +67,7 @@ function delIt() {
 	}
     if (confirm( '<?php echo $AppUI->_('doDelete') . ' ' . $AppUI->_('Folder') . '?'; ?>' )) {
         $.post("?m=companies",
-            {dosql: "do_folder_aed", del: 1, file_folder_id: <?php echo $folder_id; ?>},
+            {dosql: "do_folder_aed", del: 1, file_folder_id: <?php echo $object_id; ?>},
             window.location = "?m=companies"
         );
     }

@@ -4,39 +4,40 @@ if (!defined('W2P_BASE_DIR')) {
 }
 // @todo    convert to template
 $dept_id = (int) w2PgetParam($_GET, 'dept_id', 0);
-$department_id = (int) w2PgetParam($_GET, 'department_id', 0);
-$dept_id = max($dept_id, $department_id);
+$object_id = (int) w2PgetParam($_GET, 'department_id', 0);
+$object_id = max($dept_id, $object_id);
 
 $dept_parent = (int) w2PgetParam($_GET, 'dept_parent', 0);
 $company_id = (int) w2PgetParam($_GET, 'company_id', 0);
 
-$department = new CDepartment();
-$department->dept_id = $dept_id;
+$object = new CDepartment();
+$object->setId($object_id);
 
-$obj = $department;
-$canAddEdit = $obj->canAddEdit();
-$canAuthor = $obj->canCreate();
-$canEdit = $obj->canEdit();
+$canAddEdit = $object->canAddEdit();
+$canAuthor = $object->canCreate();
+$canEdit = $object->canEdit();
+
 if (!$canAddEdit) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
 
+
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $department = $obj;
-    $dept_id = $department->dept_id;
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-    $department->load($dept_id);
+    $object->load($object_id);
 }
-if (!$department && $dept_id > 0) {
+if (!$object && $object_id > 0) {
     $AppUI->setMsg('Department');
     $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
 }
 
-$company_id = $department->dept_id ? $department->dept_company : $company_id;
+$company_id = $object->dept_id ? $object->dept_company : $company_id;
 
-if (!$dept_id && !$company_id) {
+if (!$object_id && !$company_id) {
     $AppUI->setMsg('badCompany', UI_MSG_ERROR);
     $AppUI->redirect('m=companies');
 }
@@ -46,12 +47,12 @@ if ($company_id) {
     $company = new CCompany();
     $company->load($company_id);
     $companyName = $company->company_name;
-    $depts = $department->loadOtherDepts(null, $company_id, 0);
+    $depts = $object->loadOtherDepts(null, $company_id, 0);
     $depts = arrayMerge(array('0' => '- ' . $AppUI->_('Select Department') . ' -'), $depts);
 }
 
 // setup the title block
-$ttl = $dept_id > 0 ? 'Edit Department' : 'Add Department';
+$ttl = $object_id > 0 ? 'Edit Department' : 'Add Department';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=companies', 'companies list');
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
@@ -65,7 +66,7 @@ $titleBlock->show();
 $types = w2PgetSysVal('DepartmentType');
 $countries = array('' => $AppUI->_('(Select a Country)')) + w2PgetSysVal('GlobalCountriesPreferred') +
 		array('-' => '----') + w2PgetSysVal('GlobalCountries');
-$dept_parent = ($department->dept_parent) ? $department->dept_parent : $dept_parent;
+$dept_parent = ($object->dept_parent) ? $object->dept_parent : $dept_parent;
 ?>
 <script language="javascript" type="text/javascript">
 function testURL( x ) {

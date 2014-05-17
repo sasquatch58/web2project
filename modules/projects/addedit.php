@@ -3,14 +3,14 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 // @todo    convert to template
-$project_id = (int) w2PgetParam($_GET, 'project_id', 0);
+$object_id = (int) w2PgetParam($_GET, 'project_id', 0);
 $company_id = (int) w2PgetParam($_GET, 'company_id', $AppUI->user_company);
 $contact_id = (int) w2PgetParam($_GET, 'contact_id', 0);
 
-$project = new CProject();
-$project->project_id = $project_id;
+$object = new CProject();
+$object->setId($object_id);
 
-$obj = $project;
+$obj = $object;
 $canAddEdit = $obj->canAddEdit();
 $canAuthor = $obj->canCreate();
 $canEdit = $obj->canEdit();
@@ -20,12 +20,12 @@ if (!$canAddEdit) {
 
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $project = $obj;
-    $project_id = $project->project_id;
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-    $project->loadFull(null, $project_id);
+    $object->loadFull(null, $object_id);
 }
-if (!$project && $project_id > 0) {
+if (!$object && $object_id > 0) {
 	$AppUI->setMsg('Project');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
@@ -38,8 +38,8 @@ $AppUI->loadCalendarJS();
 $pstatus = w2PgetSysVal('ProjectStatus');
 $ptype = w2PgetSysVal('ProjectType');
 
-$structprojs = $project->getAllowedProjects($AppUI->user_id, false);
-unset($structprojs[$project_id]);
+$structprojs = $object->getAllowedProjects($AppUI->user_id, false);
+unset($structprojs[$object_id]);
 foreach($structprojs as $key => $tmpInfo) {
     $structprojs[$key] = $tmpInfo['project_name'];
 }
@@ -50,21 +50,21 @@ $company = new CCompany();
 $companies = $company->getAllowedRecords($AppUI->user_id, 'company_id,company_name', 'company_name');
 $companies = arrayMerge(array('0' => ''), $companies);
 
-if (count($companies) < 2 && $project_id == 0) {
+if (count($companies) < 2 && $object_id == 0) {
 	$AppUI->setMsg('noCompanies', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
 }
-if ($project_id == 0 && $company_id > 0) {
-	$project->project_company = $company_id;
+if ($object_id == 0 && $company_id > 0) {
+	$object->project_company = $company_id;
 }
 
 // add in the existing company if for some reason it is dis-allowed
-if ($project_id && !array_key_exists($project->project_company, $companies)) {
-	$companies[$project->project_company] = $company->load($project->project_company)->company_name;
+if ($object_id && !array_key_exists($object->project_company, $companies)) {
+	$companies[$object->project_company] = $company->load($object->project_company)->company_name;
 }
 
 // get critical tasks (criteria: task_end_date)
-$criticalTasks = ($project_id > 0) ? $project->getCriticalTasks() : null;
+$criticalTasks = ($object_id > 0) ? $object->getCriticalTasks() : null;
 
 // get ProjectPriority from sysvals
 $projectPriority = w2PgetSysVal('ProjectPriority');
@@ -72,26 +72,26 @@ $projectPriority = w2PgetSysVal('ProjectPriority');
 // format dates
 $df = $AppUI->getPref('SHDATEFORMAT');
 
-$end_date = intval($project->project_end_date) ? new w2p_Utilities_Date($project->project_end_date) : null;
+$end_date = intval($object->project_end_date) ? new w2p_Utilities_Date($object->project_end_date) : null;
 $actual_end_date = intval($criticalTasks[0]['task_end_date']) ? new w2p_Utilities_Date($criticalTasks[0]['task_end_date']) : null;
 $style = (($actual_end_date > $end_date) && !empty($end_date)) ? 'style="color:red; font-weight:bold"' : '';
 
 // setup the title block
-$ttl = $project_id > 0 ? 'Edit Project' : 'New Project';
+$ttl = $object_id > 0 ? 'Edit Project' : 'New Project';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
-$titleBlock->addViewLink('project', $project_id);
+$titleBlock->addViewLink('project', $object_id);
 $titleBlock->show();
 
-$canDelete = $project->canDelete();
+$canDelete = $object->canDelete();
 // Get contacts list
 $selected_contacts = array();
 
-if ($project_id) {
-	$myContacts = $project->getContactList();
+if ($object_id) {
+	$myContacts = $object->getContactList();
 	$selected_contacts = array_keys($myContacts);
 }
-if ($project_id == 0 && $contact_id > 0) {
+if ($object_id == 0 && $contact_id > 0) {
 	$selected_contacts[] = '' . $contact_id;
 }
 

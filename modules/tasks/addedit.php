@@ -3,14 +3,14 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 // @todo    convert to template
-$task_id = (int) w2PgetParam($_GET, 'task_id', 0);
+$object_id = (int) w2PgetParam($_GET, 'task_id', 0);
 
 
 
-$task = new CTask();
-$task->task_id = $task_id;
+$object = new CTask();
+$object->setId($object_id);
 
-$obj = $task;
+$obj = $object;
 $canAddEdit = $obj->canAddEdit();
 $canAuthor = $obj->canCreate();
 $canEdit = $obj->canEdit();
@@ -20,12 +20,12 @@ if (!$canAddEdit) {
 
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $task = $obj;
-    $task_id = $task->task_id;
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-    $task->load($task_id);
+    $object->load($object_id);
 }
-if (!$task && $task_id > 0) {
+if (!$object && $object_id > 0) {
 	$AppUI->setMsg('Task');
 	$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
@@ -35,10 +35,10 @@ $percent = array(0 => '0', 5 => '5', 10 => '10', 15 => '15', 20 => '20', 25 => '
 $status = w2PgetSysVal('TaskStatus');
 $priority = w2PgetSysVal('TaskPriority');
 
-$task_parent = (int) w2PgetParam($_GET, 'task_parent', $task->task_parent);
+$task_parent = (int) w2PgetParam($_GET, 'task_parent', $object->task_parent);
 
 // check for a valid project parent
-$task_project = (int) $task->task_project;
+$task_project = (int) $object->task_project;
 if (!$task_project) {
 	$task_project = (int) w2PgetParam($_REQUEST, 'task_project', 0);
     if (!$task_project) {
@@ -49,7 +49,7 @@ if (!$task_project) {
 
 // check permissions
 $perms = &$AppUI->acl();
-if (!$task_id) {
+if (!$object_id) {
 	// do we have access on this project?
 	$canEdit = $perms->checkModuleItem('projects', 'view', $task_project);
 	// And do we have add permission to tasks?
@@ -61,18 +61,18 @@ if (!$task_id) {
 if (!$canEdit) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
-if (isset($task->task_represents_project) && $task->task_represents_project) {
+if (isset($object->task_represents_project) && $object->task_represents_project) {
     $AppUI->setMsg('The selected task represents a subproject. Please view/edit this project instead.', UI_MSG_ERROR);
-    $AppUI->redirect('m=projects&a=view&project_id='.$task->task_represents_project);
+    $AppUI->redirect('m=projects&a=view&project_id='.$object->task_represents_project);
 }
 
 //check permissions for the associated project
-$canReadProject = $perms->checkModuleItem('projects', 'view', $task->task_project);
+$canReadProject = $perms->checkModuleItem('projects', 'view', $object->task_project);
 
 $durnTypes = w2PgetSysVal('TaskDurationType');
 
 // check the document access (public, participant, private)
-if (!$task->canAccess($AppUI->user_id)) {
+if (!$object->canAccess($AppUI->user_id)) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
 
@@ -92,10 +92,10 @@ $users = $perms->getPermittedUsers('tasks');
 $projTasks = array();
 
 $parents = array();
-$projTasksWithEndDates = array($task->task_id => $AppUI->_('None')); //arrays contains task end date info for setting new task start date as maximum end date of dependenced tasks
+$projTasksWithEndDates = array($object->task_id => $AppUI->_('None')); //arrays contains task end date info for setting new task start date as maximum end date of dependenced tasks
 $all_tasks = array();
 
-$subtasks = $task->getNonRootTasks($task_project);
+$subtasks = $object->getNonRootTasks($task_project);
 foreach ($subtasks as $sub_task) {
     // Build parent/child task list
     $parents[$sub_task['task_parent']][] = $sub_task['task_id'];
@@ -105,29 +105,29 @@ foreach ($subtasks as $sub_task) {
 
 $task_parent_options = '';
 
-$root_tasks = $task->getRootTasks((int)$task_project);
+$root_tasks = $object->getRootTasks((int)$task_project);
 foreach ($root_tasks as $root_task) {
     build_date_list($projTasksWithEndDates, $root_task);
-	if ($root_task['task_id'] != $task_id) {
-        $task_parent_options .= buildTaskTree($root_task, 0, array(), $all_tasks, $parents, $task_parent, $task_id);
+	if ($root_task['task_id'] != $object_id) {
+        $task_parent_options .= buildTaskTree($root_task, 0, array(), $all_tasks, $parents, $task_parent, $object_id);
 	}
 }
 
 // setup the title block
-$ttl = $task_id > 0 ? 'Edit Task' : 'Add Task';
+$ttl = $object_id > 0 ? 'Edit Task' : 'Add Task';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addViewLink('project', $task_project);
-$titleBlock->addViewLink('task', $task_id);
+$titleBlock->addViewLink('task', $object_id);
 $titleBlock->show();
 
 // Get contacts list
 $selected_contacts = array();
 
-if ($task_id) {
-	$myContacts = $task->getContacts(null, $task_id);
+if ($object_id) {
+	$myContacts = $object->getContacts(null, $object_id);
 	$selected_contacts = array_keys($myContacts);
 }
-if ($task_id == 0 && (isset($contact_id) && $contact_id > 0)) {
+if ($object_id == 0 && (isset($contact_id) && $contact_id > 0)) {
 	$selected_contacts[] = '' . $contact_id;
 }
 
@@ -140,11 +140,11 @@ foreach($deptList as $dept) {
 $department_selection_list = arrayMerge(array('0' => ''), $department_selection_list);
 
 //Dynamic tasks are by default now off because of dangerous behavior if incorrectly used
-if (is_null($task->task_dynamic)) {
-	$task->task_dynamic = 0;
+if (is_null($object->task_dynamic)) {
+	$object->task_dynamic = 0;
 }
 
-$can_edit_time_information = $task->canUserEditTimeInformation($project->project_owner, $AppUI->user_id);
+$can_edit_time_information = $object->canUserEditTimeInformation($project->project_owner, $AppUI->user_id);
 //get list of projects, for task move drop down list.
 $tmpprojects = $project->getAllowedProjects($AppUI->user_id);
 $projects = array();
@@ -154,7 +154,7 @@ foreach($tmpprojects as $proj) {
 }
 ?>
 <script language="javascript" type="text/javascript">
-var task_id = '<?php echo $task->task_id; ?>';
+var task_id = '<?php echo $object->task_id; ?>';
 
 var check_task_dates = <?php
 if (isset($w2Pconfig['check_task_dates']) && $w2Pconfig['check_task_dates'])
@@ -187,7 +187,7 @@ include $AppUI->getTheme()->resolveTemplate('tasks/addedit');
 
 $tab = $AppUI->processIntState('TaskAeTabIdx', $_GET, 'tab', 0);
 
-$tabBox = new CTabBox('?m=tasks&a=addedit&task_id=' . $task_id, '', $tab, '');
+$tabBox = new CTabBox('?m=tasks&a=addedit&task_id=' . $object_id, '', $tab, '');
 $tabBox->add(W2P_BASE_DIR . '/modules/tasks/ae_desc', 'Details');
 $tabBox->add(W2P_BASE_DIR . '/modules/tasks/ae_dates', 'Dates');
 $tabBox->add(W2P_BASE_DIR . '/modules/tasks/ae_depend', 'Dependencies');

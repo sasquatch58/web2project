@@ -3,17 +3,16 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 // @todo    convert to template
-$event_id = intval(w2PgetParam($_GET, 'event_id', 0));
-$is_clash = isset($_SESSION['event_is_clash']) ? $_SESSION['event_is_clash'] : false;
+$object_id = intval(w2PgetParam($_GET, 'event_id', 0));
 
 
-$obj = new CEvent();
-$obj->event_id = $event_id;
+$object = new CEvent();
+$object->setId($object_id);
 
+$canAddEdit = $object->canAddEdit();
+$canAuthor = $object->canCreate();
+$canEdit = $object->canEdit();
 
-$canAddEdit = $obj->canAddEdit();
-$canAuthor = $obj->canCreate();
-$canEdit = $obj->canEdit();
 if (!$canAddEdit) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
@@ -27,19 +26,23 @@ $date = w2PgetParam($_GET, 'date', null);
 // get the passed timestamp (today if none)
 $event_project = (int) w2PgetParam($_GET, 'project_id', 0);
 
-// load the record data
-if ($is_clash) {
-	$obj->bind($_SESSION['add_event_post']);
+$obj = $AppUI->restoreObject();
+if ($obj) {
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-	if (!$obj->load($event_id) && $event_id) {
-		$AppUI->setMsg('Event');
-		$AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
-        $AppUI->redirect('m=' . $m);
-	}
+    $object->load($object_id);
 }
-$obj->event_project = ($event_project) ? $event_project : $obj->event_project;
-$start_date = intval($obj->event_start_date) ? new w2p_Utilities_Date($AppUI->formatTZAwareTime($obj->event_start_date, '%Y-%m-%d %T')) : new w2p_Utilities_Date();
-$end_date = intval($obj->event_end_date) ? new w2p_Utilities_Date($AppUI->formatTZAwareTime($obj->event_end_date, '%Y-%m-%d %T')) : $start_date;
+// load the record data
+if (!$object && $dept_id > 0) {
+    $AppUI->setMsg('Event');
+    $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
+    $AppUI->redirect('m=' . $m);
+}
+
+$object->event_project = ($event_project) ? $event_project : $object->event_project;
+$start_date = intval($object->event_start_date) ? new w2p_Utilities_Date($AppUI->formatTZAwareTime($object->event_start_date, '%Y-%m-%d %T')) : new w2p_Utilities_Date();
+$end_date = intval($object->event_end_date) ? new w2p_Utilities_Date($AppUI->formatTZAwareTime($object->event_end_date, '%Y-%m-%d %T')) : $start_date;
 
 // load the event types
 $types = w2PgetSysVal('EventType');
@@ -50,40 +53,24 @@ $users = $perms->getPermittedUsers('events');
 
 // Load the assignees
 $assigned = array();
-if ($is_clash) {
-	$assignee_list = $_SESSION['add_event_attendees'];
-	if (isset($assignee_list) && $assignee_list) {
-		$event = new CEvent();
-		$assigned = $event->getAssigneeList($assignee_list);
-	}
-	// Now that we have loaded the possible replacement event,  remove the stored
-	// details, NOTE: This could cause using a back button to make things break,
-	// but that is the least of our problems.
-    unset($_SESSION['add_event_post']);
-    unset($_SESSION['add_event_attendees']);
-    unset($_SESSION['add_event_mail']);
-    unset($_SESSION['add_event_clash']);
-    unset($_SESSION['event_is_clash']);
+if ($object_id == 0) {
+    $assigned[$AppUI->user_id] = $AppUI->user_display_name;
 } else {
-	if ($event_id == 0) {
-		$assigned[$AppUI->user_id] = $AppUI->user_display_name;
-	} else {
-		$assigned = $obj->getAssigned();
-	}
+    $assigned = $object->getAssigned();
 }
 
 //check if the user has view permission over the project
-if ($obj->event_project && !$perms->checkModuleItem('projects', 'view', $obj->event_project)) {
+if ($object->event_project && !$perms->checkModuleItem('projects', 'view', $object->event_project)) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
 
 // setup the title block
-$titleBlock = new w2p_Theme_TitleBlock(($event_id ? 'Edit Event' : 'Add Event'), 'icon.png', $m);
+$titleBlock = new w2p_Theme_TitleBlock(($object_id ? 'Edit Event' : 'Add Event'), 'icon.png', $m);
 $titleBlock->addCrumb('?m=events&a=year_view&date=' . $start_date->format(FMT_TIMESTAMP_DATE), 'year view');
 $titleBlock->addCrumb('?m=events&amp;date=' . $start_date->format(FMT_TIMESTAMP_DATE), 'month view');
 $titleBlock->addCrumb('?m=events&a=week_view&date=' . $start_date->format(FMT_TIMESTAMP_DATE), 'week view');
 $titleBlock->addCrumb('?m=events&amp;a=day_view&amp;date=' . $start_date->format(FMT_TIMESTAMP_DATE) . '&amp;tab=0', 'day view');
-$titleBlock->addViewLink('event', $event_id);
+$titleBlock->addViewLink('event', $object_id);
 $titleBlock->show();
 
 // format dates
@@ -100,7 +87,7 @@ foreach ($projects as $project_id => $project_info) {
 $projects = arrayMerge(array(0 => $all_projects), $projects);
 
 $inc = intval(w2PgetConfig('cal_day_increment')) ? intval(w2PgetConfig('cal_day_increment')) : 30;
-if (!$event_id && !$is_clash) {
+if (!$object_id && !$is_clash) {
 
 	$seldate = new w2p_Utilities_Date($date, $AppUI->getPref('TIMEZONE'));
 	// If date is today, set start time to now + inc
@@ -117,18 +104,18 @@ if (!$event_id && !$is_clash) {
 	if ($h && $h < w2PgetConfig('cal_day_end')) {
 		$seldate->setTime($h, $min, 0);
         $seldate->convertTZ('UTC');
-		$obj->event_start_date = $seldate->format(FMT_TIMESTAMP);
+		$object->event_start_date = $seldate->format(FMT_TIMESTAMP);
 		$seldate->addSeconds($inc * 60);
         $seldate->convertTZ('UTC');
-		$obj->event_end_date = $seldate->format(FMT_TIMESTAMP);
+		$object->event_end_date = $seldate->format(FMT_TIMESTAMP);
 	} else {
 		$seldate->setTime(w2PgetConfig('cal_day_start'), 0, 0);
         $seldate->convertTZ('UTC');
-		$obj->event_start_date = $seldate->format(FMT_TIMESTAMP);
+		$object->event_start_date = $seldate->format(FMT_TIMESTAMP);
         $seldate->convertTZ($AppUI->getPref('TIMEZONE'));
 		$seldate->setTime(w2PgetConfig('cal_day_end'), 0, 0);
         $seldate->convertTZ('UTC');
-		$obj->event_end_date = $seldate->format(FMT_TIMESTAMP);
+		$object->event_end_date = $seldate->format(FMT_TIMESTAMP);
 	}
 }
 

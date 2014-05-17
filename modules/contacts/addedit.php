@@ -3,18 +3,17 @@ if (!defined('W2P_BASE_DIR')) {
 	die('You should not access this file directly.');
 }
 // @todo    convert to template
-$contact_id = (int) w2PgetParam($_GET, 'contact_id', 0);
+$object_id = (int) w2PgetParam($_GET, 'contact_id', 0);
 $company_id = (int) w2PgetParam($_GET, 'company_id', 0);
 $dept_id = (int) w2PgetParam($_GET, 'dept_id', 0);
 
-$row = new CContact();
-$row->contact_id = $contact_id;
+$object = new CContact();
+$object->setId($object_id);
 
-$obj = $row;
-$canAddEdit = $obj->canAddEdit();
-$canAuthor = $obj->canCreate();
-$canEdit = $obj->canEdit();
-$canDelete = $obj->canDelete();
+$canAddEdit = $object->canAddEdit();
+$canAuthor = $object->canCreate();
+$canEdit = $object->canEdit();
+$canDelete = $object->canDelete();
 if (!$canAddEdit) {
 	$AppUI->redirect(ACCESS_DENIED);
 }
@@ -22,12 +21,12 @@ if (!$canAddEdit) {
 // load the record data
 $obj = $AppUI->restoreObject();
 if ($obj) {
-    $row = $obj;
-    $contact_id = $row->contact_id;
+    $object = $obj;
+    $object_id = $object->getId();
 } else {
-    $row->load($contact_id);
+    $object->load($object_id);
 }
-if (!$row && $contact_id > 0) {
+if (!$object && $object_id > 0) {
     $AppUI->setMsg('Contact');
     $AppUI->setMsg('invalidID', UI_MSG_ERROR, true);
     $AppUI->redirect('m=' . $m);
@@ -45,29 +44,29 @@ $dept = new CDepartment();
 $dept->load($dept_id);
 $dept_name = $dept->dept_name;
 
-$is_user = $row->isUser($contact_id);
+$is_user = $object->isUser($object_id);
 
 $df = $AppUI->getPref('SHDATEFORMAT');
 $df .= ' ' . $AppUI->getPref('TIMEFORMAT');
 
 
 // setup the title block
-$ttl = $contact_id > 0 ? 'Edit Contact' : 'Add Contact';
+$ttl = $object_id > 0 ? 'Edit Contact' : 'Add Contact';
 $titleBlock = new w2p_Theme_TitleBlock($ttl, 'icon.png', $m);
 $titleBlock->addCrumb('?m=' . $m, $m . ' list');
-$titleBlock->addViewLink('contact', $contact_id);
+$titleBlock->addViewLink('contact', $object_id);
 
 $titleBlock->show();
-$company_detail = $row->getCompanyDetails();
-$dept_detail = $row->getDepartmentDetails();
-if ($contact_id == 0 && $company_id > 0) {
+$company_detail = $object->getCompanyDetails();
+$dept_detail = $object->getDepartmentDetails();
+if ($object_id == 0 && $company_id > 0) {
 	$company_detail['company_id'] = $company_id;
 	$company_detail['company_name'] = $company_name;
 	$dept_detail['dept_id'] = $dept_id;
 	$dept_detail['dept_name'] = $dept_name;
 }
 
-$methods = $row->getContactMethods();
+$methods = $object->getContactMethods();
 $methodLabels = w2PgetSysVal('ContactMethods');
 $countries = array('' => $AppUI->_('(Select a Country)')) + w2PgetSysVal('GlobalCountriesPreferred') +
 		array('-' => '----') + w2PgetSysVal('GlobalCountries');
@@ -134,7 +133,7 @@ function setDepartment( key ){
 function delIt(){
 	var form = document.changecontact;
 	if(confirm('<?php echo $AppUI->_('contactsDelete', UI_OUTPUT_JS); ?>')) {
-		form.del.value = '<?php echo $contact_id; ?>';
+		form.del.value = '<?php echo $object_id; ?>';
 		form.submit();
 	}
 }

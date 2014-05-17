@@ -1,6 +1,6 @@
 <form name="datesFrm" action="?m=tasks&a=addedit&task_project=<?php echo $task_project; ?>" method="post" accept-charset="utf-8">
     <input name="dosql" type="hidden" value="do_task_aed" />
-    <input name="task_id" type="hidden" value="<?php echo $task_id; ?>" />
+    <input name="task_id" type="hidden" value="<?php echo $object->getId(); ?>" />
     <input type="hidden" name="datePicker" value="task" />
 
     <div class="std addedit tasks-dates">
@@ -47,9 +47,9 @@
         <div class="column right">
             <p>
                 <?php $form->showLabel('Expected Duration'); ?>
-                <input type="text" class="text" name="task_duration" id="task_duration" maxlength="8" size="6" value="<?php echo $task->task_duration; ?>" />
+                <input type="text" class="text" name="task_duration" id="task_duration" maxlength="8" size="6" value="<?php echo $object->task_duration; ?>" />
                 <?php
-                echo arraySelect($durnTypes, 'task_duration_type', 'class="text"', $task->task_duration_type, true);
+                echo arraySelect($durnTypes, 'task_duration_type', 'class="text"', $object->task_duration_type, true);
                 ?>
             </p>
             <p>
