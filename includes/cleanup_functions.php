@@ -391,7 +391,17 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
     // percent complete and priority
     $s .= $listTable->createCell('task_percent_complete', $arr['task_percent_complete']);
     $s .= $listTable->createCell('task_priority', $arr['task_priority']);
-    $s .= $listTable->createCell('user_task_priority', $arr['user_task_priority']);
+	$assigned_users=$arr['task_assigned_users'];
+	$user_task_priority=0;
+    if (isset($arr['task_assigned_users']) && count($arr['task_assigned_users'])) {
+        $assigned_users = $arr['task_assigned_users'];
+        foreach ($assigned_users as $val) {
+			if ($val['user_id']===$AppUI->user_id) {
+				$user_task_priority=$val['user_task_priority'];
+				}
+        }		
+	}
+    $s .= $listTable->createCell('user_task_priority', $user_task_priority);//$arr['user_task_priority']);
 
     // dots
     $s = __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, $expanded);
@@ -603,7 +613,7 @@ function array_csort() { //coded by Ichier2003
 function calcEndByStartAndDuration($task)
 {
     $end_date = new w2p_Utilities_Date($task['task_start_date']);
-    $end_date->addSeconds($task['task_duration'] * $task['task_duration_type'] * SEC_HOUR);
+    $end_date->addSeconds($task['task_duration'] * $task['task_duration_type'] * 3600);
 
     return $end_date->format(FMT_DATETIME_MYSQL);
 }
@@ -4997,7 +5007,7 @@ function __extract_from_forums_view_topics($AppUI, $forum_id, $f, $orderby, $ord
 function __extract_from_tasks2($row)
 {
     $q = new w2p_Database_Query;
-    $q->addQuery('ut.user_id,	u.user_username');
+    $q->addQuery('ut.user_id,	u.user_username, ut.user_task_priority');
     $q->addQuery('ut.perc_assignment');
     $q->addQuery('contact_display_name AS assignee, contact_email');
     $q->addTable('user_tasks', 'ut');
