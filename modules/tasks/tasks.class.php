@@ -463,10 +463,7 @@ class CTask extends w2p_Core_BaseObject
         $old_dependencies = array();
         $old_parents = array();
 
-        $project_start_date = new w2p_Utilities_Date(
-            $this->_AppUI->convertToSystemTZ($project_start_date));
-        $project_start_date->next_working_day();
-        $timeOffset = 0;
+        $project_start_date = new w2p_Utilities_Date($project_start_date);
 
         $newTask = new CTask();
         $task_list = $newTask->loadAll('task_start_date', "task_project = " . $from_project_id);
@@ -477,7 +474,7 @@ class CTask extends w2p_Core_BaseObject
          *   how much we have to shift all the tasks by.
          */
         $original_start_date = new w2p_Utilities_Date($first_task['task_start_date']);
-        $timeOffset = $original_start_date->dateDiff($project_start_date) + 1;
+        $timeOffset = $original_start_date->dateDiff($project_start_date);
 
         array_unshift($task_list, $first_task);
         foreach($task_list as $orig_task) {
@@ -735,7 +732,7 @@ class CTask extends w2p_Core_BaseObject
         $this->task_dynamic = (int) $this->task_dynamic;
         $this->task_notify = (int) $this->task_notify;
 
-        $this->task_duration = (!$this->task_duration || $this->task_milestone) ? $this->task_duration : 0;
+        $this->task_duration = ($this->task_milestone) ? 0 : $this->task_duration;
         $this->task_duration_type = (int) $this->task_duration_type ? $this->task_duration_type : 1;
         $this->task_priority = (int) $this->task_priority ? $this->task_priority : 0;
 
@@ -1447,7 +1444,7 @@ class CTask extends w2p_Core_BaseObject
         if ($task_data_not_loaded) $this->load($this->task_id);
         $user_id = ($user_id) ? $user_id : $this->_AppUI->user_id;
         // Let's see if this user has admin privileges
-        if (canView('admin')) {
+        if (canView('system')) {
             return true;
         }
         // If the user is the task owner, they can always see it.
@@ -2188,7 +2185,7 @@ class CTask extends w2p_Core_BaseObject
             }
 
             // Am I sys admin?
-            if (canEdit('admin')) {
+            if (canEdit('system')) {
                 $can_edit_time_information = true;
             }
         } else {

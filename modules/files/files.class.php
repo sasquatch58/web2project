@@ -28,6 +28,7 @@ class CFile extends w2p_Core_BaseObject {
     public $file_co_reason = null;
     public $file_indexed = null;
 
+    protected $indexer = false;
     protected $_file_id = 0;
     protected $_file_system = null;
     // This "breaks" check-in/upload if helpdesk is not present class variable needs to be added "dymanically"
@@ -97,6 +98,7 @@ class CFile extends w2p_Core_BaseObject {
 
     public function hook_cron()
     {
+        $this->indexer = true;
         $q = $this->_getQuery();
         $q->addQuery('file_id, file_name');
         $q->addTable('files');
@@ -105,8 +107,11 @@ class CFile extends w2p_Core_BaseObject {
 
         foreach($unindexedFiles as $file_id => $notUsed) {
             $this->load($file_id);
-            $this->indexStrings($this->_AppUI);
+
+            $indexer = new w2p_FileSystem_Indexer($this->_getQuery());
+            $indexer->index($this);
         }
+        $this->indexer = false;
     }
 
     public function hook_search()
@@ -115,7 +120,7 @@ class CFile extends w2p_Core_BaseObject {
         $search['table_alias'] = 'f';
         $search['table_module'] = 'files';
         $search['table_key'] = 'f.file_id'; // primary key in searched table
-        $search['table_link'] = 'index.php?m=files&a=addedit&file_id='; // first part of link
+        $search['table_link'] = 'index.php?m=files&a=view&file_id='; // first part of link
         $search['table_title'] = 'Files';
         $search['table_orderby'] = 'file_name, word_placement';
         $search['search_fields'] = array('file_name', 'file_description',
@@ -127,9 +132,7 @@ class CFile extends w2p_Core_BaseObject {
         return $search;
     }
 
-    public static function getFileList($AppUI = null, $company_id = 0, $project_id = 0, $task_id = 0, $category_id = 0) {
-        global $AppUI;
-
+    public static function getFileList($AppUI = null, $notUsed = 0, $project_id = 0, $task_id = 0, $category_id = 0) {
         $q = new w2p_Database_Query();
         $q->addQuery('f.*');
         $q->addTable('files', 'f');
@@ -144,9 +147,7 @@ class CFile extends w2p_Core_BaseObject {
         if (count($allowedProjects)) {
             $q->addWhere('( ( ' . implode(' AND ', $allowedProjects) . ') OR file_project = 0 )');
         }
-        if (isset($company_id) && (int) $company_id > 0) {
-            $q->addWhere('project_company = ' . (int)$company_id);
-        }
+
         if (isset($project_id) && (int) $project_id > 0) {
             $q->addWhere('file_project = ' . (int)$project_id);
         }
@@ -165,6 +166,11 @@ class CFile extends w2p_Core_BaseObject {
         trigger_error("The CFiles->addHelpDeskTaskLog method has been deprecated in 3.2 and will be removed in v5.0. There is no replacement in core.", E_USER_NOTICE );
 
         return null;
+    }
+
+    public function canView()
+    {
+        return ($this->indexer || parent::canView());
     }
 
     public function canAdmin() {
@@ -251,108 +257,10 @@ class CFile extends w2p_Core_BaseObject {
 
     protected function hook_postDelete()
     {
-        $q = $this->_getQuery();
-        $q->setDelete('files_index');
-        $q->addQuery('*');
-        $q->addWhere('file_id = ' . (int) $this->_old_key);
-        $q->exec();
+        $indexer = new w2p_FileSystem_Indexer($this->_getQuery());
+        $indexer->clear($this->_old_key);
 
         parent::hook_postDelete();
-    }
-
-    /**
-     * parse file for indexing
-     * @todo convert to using the FileSystem methods
-     */
-    public function indexStrings() {
-        $nwords_indexed = 0;
-
-        /* Workaround for indexing large files:
-        ** Based on the value defined in config data,
-        ** files with file_size greater than specified limit
-        ** are not indexed for searching.
-        ** Negative value :<=> no filesize limit
-        */
-        $index_max_file_size = w2PgetConfig('index_max_file_size', 0);
-        if ($this->file_size > 0 && ($index_max_file_size < 0 || (int) $this->file_size <= $index_max_file_size * 1024)) {
-            // get the parser application
-            $parser = $this->_w2Pconfig['parser_' . $this->file_type];
-            if (!$parser) {
-                $parser = $this->_w2Pconfig['parser_default'];
-            }
-            if (!$parser) {
-                return false;
-            }
-            // buffer the file
-            $this->_filepath = W2P_BASE_DIR . '/files/' . $this->file_project . '/' . $this->file_real_filename;
-            if (file_exists($this->_filepath)) {
-                $fp = fopen($this->_filepath, 'rb');
-                $x = fread($fp, $this->file_size);
-                fclose($fp);
-                // parse it
-                $parser = $parser . ' ' . $this->_filepath;
-                $pos = strpos($parser, '/pdf');
-
-                /*
-                 * TODO: I *really* hate using error surpression here and I would
-                 *   normally just detect if safe_mode is on and if it was, skip
-                 *   this call. Unfortunately, safe_mode has been deprecated in
-                 *   5.3 and will be removed in 5.4
-                 */
-                if (false !== $pos) {
-                    $x = @shell_exec(`$parser -`);
-                } else {
-                    $x = @shell_exec(`$parser`);
-                }
-                // if nothing, return
-                if (strlen($x) < 1) {
-                    return 0;
-                }
-                // remove punctuation and parse the strings
-                $x = str_replace(array('.', ',', '!', '@', '(', ')'), ' ', $x);
-                $warr = explode(' ', $x);
-
-                $wordarr = array();
-                $nwords = count($warr);
-                for ($x = 0; $x < $nwords; $x++) {
-                    $newword = $warr[$x];
-                    if (!preg_match('[!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}~]', $newword)
-                        && mb_strlen(mb_trim($newword)) > 2
-                        && !preg_match('[0-9]', $newword)) {
-                        $wordarr[$newword] = $x;
-                    }
-                }
-
-                // filter out common strings
-                $ignore = w2PgetSysVal('FileIndexIgnoreWords');
-                $ignore = str_replace(' ,', ',', $ignore);
-                $ignore = str_replace(', ', ',', $ignore);
-                $ignore = explode(',', $ignore);
-                foreach ($ignore as $w) {
-                    unset($wordarr[$w]);
-                }
-                $nwords_indexed = count($wordarr);
-                // insert the strings into the table
-                while (list($key, $val) = each($wordarr)) {
-                    $q = $this->_getQuery();
-                    $q->addTable('files_index');
-                    $q->addReplace('file_id', $this->file_id);
-                    $q->addReplace('word', $key);
-                    $q->addReplace('word_placement', $val);
-                    $q->exec();
-                    $q->clear();
-                }
-            } else {
-                //TODO: if the file doesn't exist.. should we delete the db record?
-            }
-        }
-        $q = $this->_getQuery();
-        $q->addTable('files');
-        $q->addUpdate('file_indexed', 1);
-        $q->addWhere('file_id = '. $this->file_id);
-        $q->exec();
-
-        return $nwords_indexed;
     }
 
     //function notifies about file changing
@@ -487,6 +395,7 @@ class CFile extends w2p_Core_BaseObject {
         return $contact->contact_display_name;
     }
 
+    /** @deprecated */
     public function getTaskName() {
         trigger_error("The CFile->getTaskName method has been deprecated in v3.0 and will be removed in v4.0. Please use just load a CTask object instead", E_USER_NOTICE );
 
@@ -494,6 +403,15 @@ class CFile extends w2p_Core_BaseObject {
         $task->load((int)$this->file_task);
 
         return $task->task_name;
+    }
+
+    /** @deprecated */
+    public function indexStrings()
+    {
+        trigger_error("CFile->indexStrings() has been deprecated in v3.2 and will be removed by v5.0. Please use w2p_FileSystem_Indexer->index() instead.", E_USER_NOTICE);
+
+        $indexer = new w2p_FileSystem_Indexer($this->_getQuery());
+        $indexer->index($this);
     }
 
     /** @deprecated */
