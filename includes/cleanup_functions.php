@@ -356,7 +356,7 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
     $listTable->stageRowData($arr);
 
     $tmpTask = new CTask();
-    $tmpTask->load($arr['task_id']);
+    //$tmpTask->load($arr['task_id']);
     if (!$tmpTask->canAccess()) {
         return false;
     }
@@ -543,7 +543,7 @@ function findchild_gantt(&$tarr, $parent, $level = 0)
     for ($x = 0; $x < $n; $x++) {
         if ($tarr[$x]['task_parent'] == $parent && $tarr[$x]['task_parent'] != $tarr[$x]['task_id']) {
             showgtask($tarr[$x], $level, $tarr[$x]['project_id']);
-            findchild_gantt($tarr, $tarr[$x]['task_id'], $tarr[$x]['project_id'], $level);
+            findchild_gantt($tarr, $tarr[$x]['task_id'], $level);
         }
     }
 }
@@ -2318,8 +2318,6 @@ function showDays()
 
     $table_header = '<tr><th>' . $AppUI->_('User') . '</th>';
     for ($i = 0; $i <= $days_difference; $i++) {
-        if (($actual_date->isWorkingDay()) || (!$actual_date->isWorkingDay() && !$hideNonWd)) {
-        }
         if ($actual_date->isWorkingDay()) {
             $working_days_count++;
         }
@@ -2732,13 +2730,7 @@ function w2PshowImage($src, $notUsed = '', $notUsed2 = '', $alt = '', $title = '
         $result = w2PtoolTip($m, $title);
     }
     $result .= '<img src="' . $src . '" alt="' . $alt . '" />';
-    if (!$alt && !$title) {
-        //do nothing
-    } elseif ($alt && $title) {
-        $result .= w2PendTip();
-    } elseif ($alt && !$title) {
-        $result .= w2PendTip();
-    } elseif (!$alt && $title) {
+    if ($alt || $title) {
         $result .= w2PendTip();
     }
 
@@ -3618,7 +3610,7 @@ function showcompany($company, $restricted = false)
  * @param int the length to truncate entries by
  * @author Andrew Eddie <eddieajau@users.sourceforge.net>
  */
-function getEventLinks($startPeriod, $endPeriod, &$links, $notUsed = null, $minical = false)
+function getEventLinks($startPeriod, $endPeriod, $links, $notUsed = null, $minical = false)
 {
     global $event_filter;
     $events = CEvent::getEventsForPeriod($startPeriod, $endPeriod, $event_filter);
@@ -3647,6 +3639,8 @@ function getEventLinks($startPeriod, $endPeriod, &$links, $notUsed = null, $mini
             $date = $date->getNextDay();
         }
     }
+
+    return $links;
 }
 
 function getEventTooltip($event_id)
@@ -3744,7 +3738,7 @@ function getEventTooltip($event_id)
  * @param int the company id to filter by
  * @author Andrew Eddie <eddieajau@users.sourceforge.net>
  */
-function getTaskLinks($startPeriod, $endPeriod, &$links, $strMaxLen, $company_id = 0, $minical = false, $userid=0)
+function getTaskLinks($startPeriod, $endPeriod, $links, $strMaxLen, $company_id = 0, $minical = false, $userid=0)
 {
     global $a, $AppUI;
     $tasks = CTask::getTasksForPeriod($startPeriod, $endPeriod, $company_id, $userid);
@@ -3816,6 +3810,8 @@ function getTaskLinks($startPeriod, $endPeriod, &$links, $strMaxLen, $company_id
             }
         }
     }
+
+    return $links;
 }
 
 function getTaskTooltip($task_id)
@@ -4143,16 +4139,22 @@ function __extract_from_todo($user_id, $showArcProjs, $showLowTasks, $showInProg
  *
  * @return mixed
  */
-function __extract_from_tasksperuser($use_period, $ss, $se, $log_userfilter, $project_id, $company_id, $proj, $AppUI)
+function __extract_from_tasksperuser($use_period, $ss, $se, $log_userfilter, $project_id, $company_id, $proj, $AppUI, $all_proj_status='on')
 {
     $q = new w2p_Database_Query;
     $q->addTable('tasks', 't');
     $q->addQuery('t.*');
     $q->addJoin('projects', 'pr', 'pr.project_id = t.task_project', 'inner');
     $q->addWhere('pr.project_active = 1');
-    if (($template_status = w2PgetConfig('template_projects_status_id')) != '') {
+    if ('off'==$all_proj_status) {
+		 $q->addWhere('pr.project_status = 3 ');
+		}
+		else {
+			
+		  if (($template_status = w2PgetConfig('template_projects_status_id')) != '') {
         $q->addWhere('pr.project_status <> ' . (int) $template_status);
     }
+	}
 
     if ('on' == $use_period) {
         $q->addWhere('(( task_start_date >= ' . $ss . ' AND task_start_date <= ' . $se . ' ) OR ' . '  ( task_end_date <= ' . $se . ' AND task_end_date >= ' . $ss . ' ))');

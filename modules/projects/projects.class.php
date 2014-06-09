@@ -103,16 +103,16 @@ class CProject extends w2p_Core_BaseObject
         return $q->loadHashList($this->_tbl_key);
     }
 
-    protected function hook_preDelete()
+    protected function hook_postDelete()
     {
         $q = $this->_getQuery();
         $q->addTable('tasks');
         $q->addQuery('task_id');
-        $q->addWhere('task_project = ' . (int) $this->project_id);
+        $q->addWhere('task_project = ' . $this->_old_key);
         $tasks_to_delete = $q->loadColumn();
 
         $q->clear();
-        $task = new CTask();
+        $task = new w2p_Actions_BulkTasks();
         $task->overrideDatabase($this->_query);
         foreach ($tasks_to_delete as $task_id) {
             $task->task_id = $task_id;
@@ -122,7 +122,7 @@ class CProject extends w2p_Core_BaseObject
         $q->clear();
         $q->addTable('files');
         $q->addQuery('file_id');
-        $q->addWhere('file_project = ' . (int) $this->project_id);
+        $q->addWhere('file_project = ' . $this->_old_key);
         $files_to_delete = $q->loadColumn();
 
         $q->clear();
@@ -136,7 +136,7 @@ class CProject extends w2p_Core_BaseObject
         $q->clear();
         $q->addTable('events');
         $q->addQuery('event_id');
-        $q->addWhere('event_project = ' . (int) $this->project_id);
+        $q->addWhere('event_project = ' . $this->_old_key);
         $events_to_delete = $q->loadColumn();
 
         $q->clear();
@@ -150,17 +150,17 @@ class CProject extends w2p_Core_BaseObject
         $q->clear();
         // remove the project-contacts and project-departments map
         $q->setDelete('project_contacts');
-        $q->addWhere('project_id =' . (int) $this->project_id);
+        $q->addWhere('project_id =' . $this->_old_key);
         $q->exec();
 
         $q->clear();
         $q->setDelete('project_departments');
-        $q->addWhere('project_id =' . (int) $this->project_id);
+        $q->addWhere('project_id =' . $this->_old_key);
         $q->exec();
 
         $q->clear();
         $q->setDelete('tasks');
-        $q->addWhere('task_represents_project =' . (int) $this->project_id);
+        $q->addWhere('task_represents_project =' . $this->_old_key);
 
         parent::hook_preDelete();
     }
@@ -170,7 +170,7 @@ class CProject extends w2p_Core_BaseObject
      * */
     public function importTasks($from_project_id, CTask $newTask = null)
     {
-        $newTask = is_object($newTask) ? $newTask : new CTask();
+        $newTask = new w2p_Actions_ImportTasks();
         $newTask->overrideDatabase($this->_query);
 
         return $newTask->importTasks($from_project_id, $this->project_id, $this->project_start_date);
@@ -807,10 +807,10 @@ class CProject extends w2p_Core_BaseObject
         $worked_hours = rtrim($worked_hours, '.');
         $q->clear();
 
-        $project = new CProject();
-        $project->load($project_id);
-        $project->project_worked_hours = $worked_hours;
-        $project->store();
+        $q->addTable('projects');
+        $q->addUpdate('project_worked_hours', $worked_hours);
+        $q->addWhere('project_id = ' . $project_id);
+        $q->exec();
 
         self::updatePercentComplete($project_id);
     }
@@ -834,11 +834,11 @@ class CProject extends w2p_Core_BaseObject
         $task = new CTask();
         $project_scheduled_hours = $task->getHoursScheduled($project_id);
 
-        $project = new CProject();
-        $project->load($project_id);
-        $project->project_percent_complete = $project_percent_complete;
-        $project->project_scheduled_hours = $project_scheduled_hours;
-        $project->store();
+        $q->addTable('projects');
+        $q->addUpdate('project_percent_complete', $project_percent_complete);
+        $q->addUpdate('project_scheduled_hours', $project_scheduled_hours);
+        $q->addWhere('project_id = ' . $project_id);
+        $q->exec();
 
         global $AppUI;
         CTask::storeTokenTask($AppUI, $project_id);

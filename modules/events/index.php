@@ -103,14 +103,10 @@ if($last_time->getDayOfWeek() != 6) {
     $last_time->setYear($first_day_of_next_month->getYear());
 }
 
-$links = array();
-$user_filter=0;
-if ($event_filter=='my') $user_filter=$AppUI->user_id;
-// assemble the links for the tasks
-getTaskLinks($first_time, $last_time, $links, 20, $company_id, false, $user_filter);
+$user_filter = ($event_filter == 'my') ? $AppUI->user_id : 0;
 
-// assemble the links for the events
-getEventLinks($first_time, $last_time, $links, 20);
+$links = getTaskLinks($first_time, $last_time, array(), 20, $company_id, false, $user_filter);
+$links += getEventLinks($first_time, $last_time, array(), 20);
 
 $hooks = new w2p_System_HookHandler($AppUI);
 $hooks->links = $links;
@@ -139,9 +135,9 @@ $first_time->setTime(0, 0, 0);
 $last_time = new w2p_Utilities_Date($cal->prev_month);
 $last_time->setDay($cal->prev_month->getDaysInMonth());
 $last_time->setTime(23, 59, 59);
-$links = array();
-getTaskLinks($first_time, $last_time, $links, 20, $company_id, true);
-getEventLinks($first_time, $last_time, $links, 20);
+
+$links = getTaskLinks($first_time, $last_time, array(), 20, $company_id, true);
+$links += getEventLinks($first_time, $last_time, array(), 20);
 $minical->setEvents($links);
 
 echo '<table class="std"><tr>';
@@ -155,9 +151,9 @@ $first_time->setTime(0, 0, 0);
 $last_time = new w2p_Utilities_Date($cal->next_month);
 $last_time->setDay($cal->next_month->getDaysInMonth());
 $last_time->setTime(23, 59, 59);
-$links = array();
-getTaskLinks($first_time, $last_time, $links, 20, $company_id, true);
-getEventLinks($first_time, $last_time, $links, 20, true);
+
+$links = getTaskLinks($first_time, $last_time, array(), 20, $company_id, true);
+$links += getEventLinks($first_time, $last_time, array(), 20, true);
 $minical->setEvents($links);
 
 echo '<td valign="top" align="center" width="220">' . $minical->show() . '</td>';

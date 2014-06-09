@@ -6,7 +6,7 @@ if (!defined('W2P_BASE_DIR')) {
 // @todo    remove database query
 
 global $AppUI, $cal_sdf;
-$AppUI->loadCalendarJS();
+$AppUI->getTheme()->loadCalendarJS();
 
 $do_report = w2PgetParam($_POST, 'do_report', true);
 $log_start_date = w2PgetParam($_POST, 'log_start_date', 0);
@@ -21,6 +21,7 @@ $log_userfilter = (int) w2PgetParam($_POST, 'log_userfilter', $AppUI->user_id);
 $company_id = (int) w2PgetParam($_POST, 'company_id', 'all');
 $project_id = (int) w2PgetParam($_POST, 'project_id', 'all');
 $report_type = (int) w2PgetParam($_POST, 'report_type', '');
+$all_proj_status = w2PgetParam($_POST, 'all_proj_status', 'off');
 
 // get CProject() to filter tasks by company
 $proj = new CProject();
@@ -37,15 +38,18 @@ $taskPriority[999]=$AppUI->_('Select User Priority');
 $table_header = '';
 $table_rows = '';
 
+$userTZ = $AppUI->getPref('TIMEZONE');
 // create Date objects from the datetime fields
-$start_date = intval($log_start_date) ? new w2p_Utilities_Date($log_start_date) : new w2p_Utilities_Date();
-$end_date = intval($log_end_date) ? new w2p_Utilities_Date($log_end_date) : new w2p_Utilities_Date();
-$now = new w2p_Utilities_Date();
+$start_date = intval($log_start_date) ? new w2p_Utilities_Date($log_start_date, $userTZ) : new w2p_Utilities_Date(null, $userTZ);
+$start_date->convertTZ('GMT');
+$end_date = intval($log_end_date) ? new w2p_Utilities_Date($log_end_date, $userTZ) : new w2p_Utilities_Date(null, $userTZ);
+$end_date->convertTZ('GMT');
+$now = new w2p_Utilities_Date(null, $userTZ);
+$now->convertTZ('GMT');
 
 if (!$log_start_date) {
 	$start_date->subtractSpan(new Date_Span('14,0,0,0'));
 }
-$end_date->setTime(23, 59, 59);
 
 // get Users with all Allocation info (e.g. their freeCapacity)
 $tempoTask = new CTask();
@@ -184,13 +188,19 @@ function chPriority(user_id) {
                     echo arraySelect($active_users, 'log_userfilter', 'class="text" style="width: 200px"', $log_userfilter);
                 ?>
 			</td>
-			<td nowrap="nowrap">
+			<td width="50%" nowrap="nowrap">
 				<input type="checkbox" name="display_week_hours" id="display_week_hours" <?php if ('on' == $display_week_hours) { echo 'checked="checked"'; } ?> />
 				<label for="display_week_hours"><?php echo $AppUI->_('Display allocated hours/week'); ?></label><br />
+			</td>
+			<td nowrap="nowrap">
 				<input type="checkbox" name="use_period" id="use_period" <?php if ('on' == $use_period) { echo 'checked="checked"'; } ?> />
 				<label for="use_period"><?php echo $AppUI->_('Use the period'); ?></label>
 			</td>
-			<td align="left" width="50%" nowrap="nowrap">
+			<td width="50%" nowrap="nowrap">
+				<input type="checkbox" name="all_proj_status" id="all_proj_status" <?php if ('on' == $all_proj_status) { echo 'checked="checked"'; } ?> />
+				<label for="all_proj_status"><?php echo $AppUI->_('All project status except template'); ?></label>
+			</td>
+			<td align="right" width="50%" nowrap="nowrap">
 				<input class="button" type="submit" name="do_report" value="<?php echo $AppUI->_('submit'); ?>" />
 			</td>
 		</tr>
@@ -256,7 +266,7 @@ if ($do_report) {
 	$and = false;
 	$where = false;
 
-    $task_list_hash = __extract_from_tasksperuser($use_period, $ss, $se, $log_userfilter, $project_id, $company_id, $proj, $AppUI);
+    $task_list_hash = __extract_from_tasksperuser($use_period, $ss, $se, $log_userfilter, $project_id, $company_id, $proj, $AppUI, $all_proj_status);
 
 	$task_list = array();
 	$task_assigned_users = array();
