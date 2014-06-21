@@ -130,7 +130,7 @@ function findchilddept_comp(&$tarr, $parent, $level = 0)
 {
     trigger_error("The findchilddept_comp function has been deprecated and will be removed in v4.0. There is no replacement.", E_USER_NOTICE );
 
-    $level = $level + 1;
+    $level++;
     $n = count($tarr);
     for ($x = 0; $x < $n; $x++) {
         if ($tarr[$x]['dept_parent'] == $parent && $tarr[$x]['dept_parent'] != $tarr[$x]['dept_id']) {
@@ -308,7 +308,7 @@ function find_proj_child(&$tarr, $parent, $level = 0)
 {
     trigger_error("find_proj_child() has been deprecated in v3.0 and will be removed in v4.0. There is no replacement.", E_USER_NOTICE);
 
-    $level = $level + 1;
+    $level++;
     $n = count($tarr);
     for ($x = 0; $x < $n; $x++) {
         if ($tarr[$x]['project_parent'] == $parent && $tarr[$x]['project_parent'] != $tarr[$x]['project_id']) {
@@ -763,4 +763,10 @@ function clash_cancel(w2p_Core_CAppUI $AppUI)
     trigger_error(__FUNCTION__ . " has been deprecated in v3.2 and will be removed in v5.0. There is no replacement.", E_USER_NOTICE );
 
     $AppUI->redirect('m=events');
+}
+
+/** @deprecated */
+function smart_slice($arr, $notUsed1, $notUsed2, $notUsed3)
+{
+    return dumb_slice($arr);
 }

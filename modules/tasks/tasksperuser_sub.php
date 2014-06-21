@@ -283,7 +283,7 @@ if ($do_report) {
 		$task->task_assigned_users = $task_users;
 		$task_list[$i] = $task;
 
-		$i += 1;
+		$i++;
 	}
 	$Ntasks = $i;
 
@@ -391,6 +391,9 @@ if ($do_report) {
                 $zi = 0;
                 foreach ($task_list as $task) {
                     if (isMemberOfTask($task_list, $Ntasks, $user_id, $task)) {
+                        if ($task->task_parent && $task->task_parent != $task->task_id) {
+                            continue;
+                        }
                         $tmptasks .= displayTask($task_list, $task, 0, $display_week_hours, $sss, $sse, $user_id);
                         // Get children
                         $tmptasks .= doChildren($task_list, $Ntasks, $task->task_id, $user_id, 1, $max_levels, $display_week_hours, $sss, $sse);

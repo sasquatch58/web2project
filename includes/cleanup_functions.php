@@ -100,50 +100,19 @@ function strEzPdf($text)
 * 		- or a milestone a MILESTONE is between indices LENGTH-2 and LENGTH-1 : in
 * 		  this case the milestone is INCLUDED in the lower sub_array
 */
-function smart_slice($arr, $showNoMilestones, $notUsed, $day_diff)
+
+
+function dumb_slice( $gantt_arr, $length = 25 )
 {
-    global $gtask_sliced;
+    $sliced_array = array();
 
-    $length = ($showNoMilestones) ? 26 : 25;
-    if ($day_diff < 90) {
-        $length = $length - 2;
-    } elseif ($day_diff >=90 && $day_diff < 1096) {
-        $length = $length;
-    } else {
-        $length++;
+    $pages = (int) count($gantt_arr) / $length;
+
+    for ( $i = 0; $i <= $pages; $i++ ) {
+        $sliced_array[] = array_slice($gantt_arr, $i * $length, $length);
     }
 
-    if ( count($arr) > $length ) {
-        $found = 0 ;
-        for ($i = $length-3 ; $i<$length ; $i++) {
-            if ($arr[$i][0]['task_dynamic'] != 0) {
-                $found = $i ;
-            }
-        }
-        if (!$found) {
-            for ($i = $length-1 ; $i > $length-3 ; $i--) {
-                if ($arr[$i][0]['task_milestone'] != 0) {
-                    $found = $i ;
-                }
-            }
-            if (!$found) {
-                if ($arr[$length][0]['task_milestone'] == 0) {
-                    $cut = $length ;						// No specific task => standard cut
-                } else {
-                    $cut = $length - 1 ;					// No orphan milestone
-                }
-            } else {
-                $cut = $found + 1 ;						// include found milestone in lower level array
-            }
-        } else {
-            $cut = $found ;									//include found dynamic task in higher level array
-        }
-        $gtask_sliced[] = array_slice( $arr, 0, $cut );
-    } else {
-        $gtask_sliced[] = $arr ;
-    }
-
-    return $gtask_sliced ;
+    return $sliced_array;
 }
 
 /**
@@ -356,7 +325,7 @@ function __extract_from_showtask(&$arr, $level, $today_view, $listTable)
     $listTable->stageRowData($arr);
 
     $tmpTask = new CTask();
-    //$tmpTask->load($arr['task_id']);
+    $tmpTask->setId($arr['task_id']);
     if (!$tmpTask->canAccess()) {
         return false;
     }
@@ -461,23 +430,21 @@ function __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, 
         }
         $s .= '<img src="' . $image . '" width="16" height="12"  border="0" alt=""/>';
     }
-    if ($arr['task_description']) {
+    if ($arr['task_description'] && !$arr['task_milestone']) {
         $s .= w2PtoolTip('Task Description', substr($arr['task_description'], 0, 1000), true);
     }
 
-
-    $open_link = '<a href="javascript: void(0);"><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_collapse" src="' . w2PfindImage('icons/collapse.gif') . '" class="center" ' . (!$expanded ? 'style="display:none"' : '') . ' /><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level + 1) . ');" id="' . $jsTaskId . '_expand" src="' . w2PfindImage('icons/expand.gif') . '" class="center" ' . ($expanded ? 'style="display:none"' : '') . ' /></a>';
     if (isset($arr['children']) && $arr['children']) {
         $is_parent = true;
     } else {
         $is_parent = false;
     }
     if ($arr['task_milestone'] > 0) {
-        $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" ><b>' . $arr['task_name'] . '</b></a> <img src="' . w2PfindImage('icons/milestone.gif') . '" /></td>';
+        $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" ><b>' . $arr['task_name'] . '</b></a>&nbsp;<img src="' . w2PfindImage('icons/milestone.gif') . '" />';
     } elseif ($arr['task_dynamic'] == '1' || $is_parent) {
-        if (!$today_view) {
-            $s .= $open_link;
-        }
+        $open_link = '<a href="javascript: void(0);"><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level++) . ');" id="' . $jsTaskId . '_collapse" src="' . w2PfindImage('icons/collapse.gif') . '" class="center" ' . (!$expanded ? 'style="display:none"' : '') . ' /><img onclick="expand_collapse(\'' . $jsTaskId . '\', \'tblProjects\',\'\',' . ($level++) . ');" id="' . $jsTaskId . '_expand" src="' . w2PfindImage('icons/expand.gif') . '" class="center" ' . ($expanded ? 'style="display:none"' : '') . ' /></a>';
+        $s .= $open_link;
+
         if ($arr['task_dynamic'] == '1') {
             $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" ><b><i>' . $arr['task_name'] . '</i></b></a>';
         } else {
@@ -486,7 +453,7 @@ function __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, 
     } else {
         $s .= '&nbsp;<a href="./index.php?m=tasks&amp;a=view&amp;task_id=' . $arr['task_id'] . '" >' . $arr['task_name'] . '</a>';
     }
-    if ($arr['task_description']) {
+    if ($arr['task_description'] && !$arr['task_milestone']) {
         $s .= w2PendTip();
     }
     $s .= '</td>';
@@ -523,7 +490,7 @@ function findchild_new(&$tarr, $parent, $level = 0)
 {
     global $shown_tasks;
 
-    $level = $level + 1;
+    $level++;
     $n = count($tarr);
 
     for ($x = 0; $x < $n; $x++) {
@@ -537,7 +504,7 @@ function findchild_new(&$tarr, $parent, $level = 0)
 
 function findchild_gantt(&$tarr, $parent, $level = 0)
 {
-    $level = $level + 1;
+    $level++;
     $n = count($tarr);
 
     for ($x = 0; $x < $n; $x++) {
@@ -679,7 +646,7 @@ function doChildren($list, $N, $id, $uid, $level, $maxlevels, $display_week_hour
                 // we have a child, do we have the user as a member?
                 if (isMemberOfTask($list, $N, $uid, $task)) {
                     $tmp .= displayTask($list, $task, $level, $display_week_hours, $ss, $se, $uid);
-                    $tmp .= doChildren($list, $N, $task->task_id, $uid, $level + 1, $maxlevels, $display_week_hours, $ss, $se);
+                    $tmp .= doChildren($list, $N, $task->task_id, $uid, $level++, $maxlevels, $display_week_hours, $ss, $se);
                 }
             }
         }
@@ -699,7 +666,7 @@ function doChildren_r($list, $Lusers, $N, $id, $uid, $level, $maxlevels, $displa
                 // we have a child, do we have the user as a member?
                 if (isMemberOfTask_r($list, $Lusers, $N, $uid, $task)) {
                     $tmp .= displayTask_r($list, $task, $level, $display_week_hours, $ss, $se, $log_all_projects, $uid);
-                    $tmp .= doChildren_r($list, $Lusers, $N, $task->task_id, $uid, $level + 1, $maxlevels, $display_week_hours, $ss, $se, $log_all_projects);
+                    $tmp .= doChildren_r($list, $Lusers, $N, $task->task_id, $uid, $level++, $maxlevels, $display_week_hours, $ss, $se, $log_all_projects);
                 }
             }
         }
@@ -770,7 +737,7 @@ function displayTask($list, $task, $level, $display_week_hours, $fromPeriod, $to
     $tmp .= '<input type="checkbox" name="selected_task[' . $task->task_id . ']" value="' . $task->task_id . '" />';
     $tmp .= '</td>';
     $tmp .= $htmlHelper->createCell('user_priority', $task->userPriority);
-    $tmp .= '<td>';
+    $tmp .= '<td class="_name">';
 
     for ($i = 0; $i < $level; $i++) {
         $tmp .= '&#160';
@@ -1114,7 +1081,7 @@ function showfiltertask(&$a, $level=0)
 // from modules/tasks/viewgantt.php
 function findfiltertaskchild(&$tarr, $parent, $level=0)
 {
-     $level = $level + 1;
+     $level++;
      $n = count($tarr);
      for ($x=0; $x < $n; $x++) {
           if ($tarr[$x]['task_parent'] == $parent && $tarr[$x]['task_parent'] != $tarr[$x]['task_id']) {
@@ -1377,7 +1344,7 @@ function showchilddept(&$a, $level = 1)
 //recursive function to display children departments.
 function findchilddept(&$tarr, $parent, $level = 1)
 {
-    $level = $level + 1;
+    $level++;
     $n = count($tarr);
     for ($x = 0; $x < $n; $x++) {
         if ($tarr[$x]['dept_parent'] == $parent && $tarr[$x]['dept_parent'] != $tarr[$x]['dept_id']) {

@@ -170,7 +170,7 @@ class CProject extends w2p_Core_BaseObject
      * */
     public function importTasks($from_project_id, CTask $newTask = null)
     {
-        $newTask = new w2p_Actions_ImportTasks();
+        $newTask = new w2p_Actions_BulkTasks();
         $newTask->overrideDatabase($this->_query);
 
         return $newTask->importTasks($from_project_id, $this->project_id, $this->project_start_date);
@@ -978,7 +978,7 @@ class CProject extends w2p_Core_BaseObject
     }
 
     public function find_proj_child(&$tarr, $parent, $level = 0) {
-        $level = $level + 1;
+        $level++;
         $n = count($tarr);
         for ($x = 0; $x < $n; $x++) {
             if ($tarr[$x]['project_parent'] == $parent && $tarr[$x]['project_parent'] != $tarr[$x]['project_id']) {
