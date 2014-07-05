@@ -395,6 +395,7 @@ class CTask extends w2p_Core_BaseObject
             $q->addUpdate('task_duration_type',     $duration_type);
             $q->addUpdate('task_hours_worked',      $children_hours_worked);
             $q->addUpdate('task_percent_complete',  $percent_complete);
+            // TODO: the task_sequence should increment on this update
             $q->addWhere("task_id = $key");
             $q->exec();
         }
@@ -1921,6 +1922,7 @@ class CTask extends w2p_Core_BaseObject
         $q->addTable('tasks');
         $q->addQuery('task_id, task_name, task_description, task_end_date, task_start_date');
         $q->addQuery('task_milestone, task_parent, task_dynamic, task_percent_complete, task_path_enumeration');
+        $q->addQuery('task_duration, task_duration_type, task_owner');
         $q->addWhere('task_project = ' . (int) $project_id);
         
         if ($task_id) {
@@ -1933,9 +1935,12 @@ class CTask extends w2p_Core_BaseObject
 
         $tasks = $q->loadHashList('task_id');
         foreach ($tasks as $task) {
+            $children = $this->getTaskTree($project_id, $task['task_id']);
+
             $task['depth'] = $this->_depth;
+            $task['children'] = count($children);
             $taskTree[$task['task_id']] = $task;
-            $taskTree = arrayMerge($taskTree, $this->getTaskTree($project_id, $task['task_id']));
+            $taskTree = arrayMerge($taskTree, $children);
         }
         $this->_depth--;
 

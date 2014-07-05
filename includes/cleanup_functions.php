@@ -422,7 +422,7 @@ function __extract_from_showtask2($arr, $level, $today_view, $s, $m, $jsTaskId, 
         $s .= w2PtoolTip('Task Description', substr($arr['task_description'], 0, 1000), true);
     }
 
-    if (isset($arr['children']) && $arr['children']) {
+    if (isset($arr['task_nr_of_children']) && $arr['task_nr_of_children']) {
         $is_parent = true;
     } else {
         $is_parent = false;
@@ -5003,9 +5003,8 @@ function __extract_from_tasks3($f, $q, $user_id, $task_id, $AppUI)
         //if we are on a task context make sure we show ALL the children tasks
         $f = 'deepchildren';
     }
+
     switch ($f) {
-        case 'all':
-            break;
         case 'myfinished7days':
             $q->addWhere('ut.user_id = ' . (int) $user_id);
         case 'allfinished7days':
@@ -5056,10 +5055,14 @@ function __extract_from_tasks3($f, $q, $user_id, $task_id, $AppUI)
         case 'taskowned':
             $q->addWhere('task_owner = ' . (int) $user_id);
             break;
+        case 'all':
+            //break;
         default:
-            $q->addTable('user_tasks');
-            $q->addWhere('user_tasks.user_id = ' . (int) $user_id);
-            $q->addWhere('user_tasks.task_id = tasks.task_id');
+            if ($user_id) {
+                $q->addTable('user_tasks');
+                $q->addWhere('user_tasks.user_id = ' . (int) $user_id);
+                $q->addWhere('user_tasks.task_id = tasks.task_id');
+            }
             break;
     }
 
@@ -5149,20 +5152,6 @@ function __extract_from_tasks5($q, $subquery)
     $q->addQuery('task_access');
     $q->addQuery('(' . $subquery . ') AS task_nr_of_children');
     $q->addTable('tasks');
-
-    return $q;
-}
-
-/**
- * @param $history_active
- * @param $q
- */
-function __extract_from_tasks6($q, $history_active)
-{
-    if ($history_active) {
-        $q->addQuery('MAX(history_date) as last_update');
-        $q->leftJoin('history', 'h', 'history_item = tasks.task_id AND history_table=\'tasks\'');
-    }
 
     return $q;
 }
