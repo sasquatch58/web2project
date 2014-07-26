@@ -255,7 +255,7 @@ function buildTaskTree($task_data, $depth = 0, $projTasks, $all_tasks, $parents,
     $output = '';
 
     $projTasks[$task_data['task_id']] = $task_data['task_name'];
-    $task_data['task_name'] = mb_strlen($task_data[1]) > 45 ? mb_substr($task_data['task_name'], 0, 45) . '...' : $task_data['task_name'];
+    $task_data['task_name'] = mb_strlen($task_data['task_name']) > 45 ? mb_substr($task_data['task_name'], 0, 45) . '...' : $task_data['task_name'];
     $selected = $task_data['task_id'] == $task_parent ? ' selected="selected"' : '';
 
     $output .= '<option value="' . $task_data['task_id'] . '"' . $selected . '>' . str_repeat('&nbsp;', $depth * 3) . w2PFormSafe($task_data['task_name']) . '</option>';
@@ -3785,7 +3785,7 @@ function getTaskTooltip($task_id)
     $assignees = $task->assignees($task_id);
     $assigned = array();
     foreach ($assignees as $user) {
-        $assigned[] = $user['user_name'] . ' ' . $user['perc_assignment'] . '%';
+        $assigned[] = $user['contact_name'] . ' ' . $user['perc_assignment'] . '%';
     }
 
     $start_date = (int) $task->task_start_date ? new w2p_Utilities_Date($AppUI->formatTZAwareTime($task->task_start_date, '%Y-%m-%d %T')) : null;
