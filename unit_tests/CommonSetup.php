@@ -16,7 +16,7 @@ global $w2p_performance_dbtime;
 global $w2p_performance_old_dbqueries;
 global $AppUI;
 
-require_once 'base.php';
+require_once '../base.php';
 require_once W2P_BASE_DIR . '/includes/main_functions.php';
 require_once W2P_BASE_DIR . '/includes/config.php';
 require_once W2P_BASE_DIR . '/includes/db_adodb.php';
@@ -27,17 +27,6 @@ require_once W2P_BASE_DIR . '/includes/db_adodb.php';
 $defaultTZ = w2PgetConfig('system_timezone', 'UTC');
 $defaultTZ = ('' == $defaultTZ) ? 'UTC' : $defaultTZ;
 date_default_timezone_set($defaultTZ);
-
-if (file_exists('PHPUnit/Framework.php')) {
-    //PHPUnit 3.5.15
-    require_once 'PHPUnit/Framework.php';
-    require_once 'PHPUnit/Extensions/Database/TestCase.php';
-} else {
-    /*
-     * For PHPUnit 3.6+, we don't need to explicitly require anything, it's
-     *   all handled via an autoloader.
-     */
-}
 
 /*
  * Need this to test actions that require permissions.

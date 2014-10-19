@@ -164,8 +164,8 @@ class w2p_Output_EmailManager
     {
         $body = $this->_AppUI->_('Project', UI_OUTPUT_RAW) . ":\t" . $projname . "\n";
         $body .= $this->_AppUI->_('Task', UI_OUTPUT_RAW) . ":\t\t" . $task->task_name . "\n";
-        $body .= $this->_AppUI->_('Priority', UI_OUTPUT_RAW) . ":\t\t" . $task->task_priority . "\n";
-        $body .= $this->_AppUI->_('Progress', UI_OUTPUT_RAW) . ":\t\t" . $task->task_percent_complete . "%\n";
+        $body .= $this->_AppUI->_('Priority', UI_OUTPUT_RAW) . ":\t" . $task->task_priority . "\n";
+        $body .= $this->_AppUI->_('Progress', UI_OUTPUT_RAW) . ":\t" . $task->task_percent_complete . "%\n";
         $tmp_tz = $this->_AppUI->getPref('TIMEZONE');
         $user_prefs = $this->_AppUI->loadPrefs($user['assignee_id'], true);
         $this->_AppUI->user_prefs['TIMEZONE'] = $user_prefs['TIMEZONE'];
@@ -199,7 +199,8 @@ class w2p_Output_EmailManager
     public function getTaskNotifyOwner(CTask $task)
     {
         $project = new CProject();
-        $projname = $project->load($task->task_project)->project_name;
+        $project->load($task->task_project);
+        $projname = $project->project_name;
 
         $body = $this->_AppUI->_('Project', UI_OUTPUT_RAW) . ':     ' . $projname . "\n";
         $body .= $this->_AppUI->_('Task', UI_OUTPUT_RAW) . ':         ' . $task->task_name . "\n";
