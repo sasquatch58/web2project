@@ -3935,7 +3935,7 @@ function __extract_from_todo($user_id, $showArcProjs, $showLowTasks, $showInProg
 // query my sub-tasks (ignoring task parents)
 
     $q = new w2p_Database_Query;
-    $q->addQuery('distinct(ta.task_id), ta.*');
+    $q->addQuery('distinct(ta.task_id), ta.*, ta.task_start_date as task_start_datetime, ta.task_end_date as task_end_datetime');
     $q->addQuery('project_name, pr.project_id, project_color_identifier');
     $q->addQuery('tp.task_pinned');
     $q->addQuery('ut.user_task_priority');
@@ -4592,7 +4592,7 @@ function __extract_from_projects_gantt2($department, $addPwOiD, $project_type, $
     if ($statusFilter > -1) {
         $q->addWhere('pr.project_status = ' . (int) $statusFilter);
     }
-    if (!($department > 0) && $company_id != 0 && !$addPwOiD) {
+    if (!($department > 0) && $company_id > 0 && !$addPwOiD) {
         $q->addWhere('pr.project_company = ' . (int) $company_id);
     }
 // Show Projects where the Project Owner is in the given department
